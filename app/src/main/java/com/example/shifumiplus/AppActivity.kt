@@ -1,0 +1,76 @@
+package com.example.shifumiplus
+
+import android.content.Context
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.example.shifumiplus.presentation.MainViewModel
+import com.example.shifumiplus.ui.AppRoot
+import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
+
+class AppActivity : ComponentActivity() {
+    private val viewModel: MainViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val savedName = prefs.getString("player_name", null)
+        if (!savedName.isNullOrBlank()) {
+            viewModel.setPlayerName(savedName)
+            viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.MainMenu)
+        }
+
+        setContent {
+            ShiFuMiPlusTheme {
+                val state by viewModel.uiState.collectAsState()
+                val playerWins = state.currentPlayers.associate { player ->
+                    player.name to prefs.getInt(playerWinKey(player.name), 0)
+                }
+
+                AppRoot(
+                    uiState = state,
+                    playerWins = playerWins,
+                    onNameConfirm = { name ->
+                        prefs.edit().putString("player_name", name).apply()
+                        viewModel.setPlayerName(name)
+                        viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.MainMenu)
+                    },
+                    onCreateGame = { viewModel.createGame() },
+                    onJoinRequest = { id -> viewModel.joinGame(id) },
+                    onStartGame = { viewModel.startGame() },
+                    onNavigateToJoin = { viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.Join) },
+                    onNavigateToMain = { viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.MainMenu) },
+                    onSubmitAction = { action, target -> viewModel.submitAction(action, target) },
+                    onExitRequested = { finish() },
+                    onLeaveGame = { viewModel.leaveGame() },
+                    onFinishGame = {
+                        val winners = resolveWinners(state.currentPlayers)
+                        winners.forEach { name ->
+                            val key = playerWinKey(name)
+                            val total = prefs.getInt(key, 0) + 1
+                            prefs.edit().putInt(key, total).apply()
+                        }
+                        viewModel.finishGame()
+                    }
+                )
+            }
+        }
+    }
+
+    private fun playerWinKey(name: String): String = "player_win_count_${name.trim().lowercase()}"
+
+    private fun resolveWinners(players: List<com.example.shifumiplus.domain.PlayerState>): List<String> {
+        val alive = players.filter { it.lives > 0 }
+        if (alive.size == 1) return listOf(alive.first().name)
+        if (alive.isNotEmpty()) return alive.map { it.name }
+
+        val maxTurn = players.filter { it.lives <= 0 }.maxOfOrNull { it.eliminatedAtTurn ?: 0L } ?: 0L
+        return players.filter { it.lives <= 0 && (it.eliminatedAtTurn ?: 0L) == maxTurn }.map { it.name }
+    }
+}

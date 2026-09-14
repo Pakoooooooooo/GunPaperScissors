@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "122750462649",
+    "project_id": "test2-55fc7759",
+    "storage_bucket": "test2-55fc7759.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:122750462649:android:0347c8a235f28ea92e4968",
+        "android_client_info": {
+          "package_name": "com.example.shifumiplus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNexMjn1ym0vwMyI3VMMKgI2rpfISUoI4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
