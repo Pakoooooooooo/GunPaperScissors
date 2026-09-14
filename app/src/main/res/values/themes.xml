@@ -2,4 +2,8 @@
 <resources>
 
     <style name="Theme.ShiFuMiPlus" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.ShiFuMiPlus.Splash" parent="Theme.ShiFuMiPlus">
+        <item name="android:windowBackground">@color/logo_red</item>
+    </style>
 </resources>

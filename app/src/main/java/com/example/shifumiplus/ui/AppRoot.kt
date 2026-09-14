@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.shifumiplus.presentation.MainViewModel
-import com.example.shifumiplus.ui.screens.FinalRankingScreen
 import com.example.shifumiplus.ui.screens.GameScreen
 import com.example.shifumiplus.ui.screens.JoinScreen
 import com.example.shifumiplus.ui.screens.LobbyScreen
@@ -30,7 +29,7 @@ fun AppRoot(
     onFinishGame: () -> Unit
 ) {
     BackHandler(enabled = true) {
-        when (val screen = uiState.screen) {
+        when (uiState.screen) {
             is MainViewModel.Screen.Name -> onExitRequested()
             is MainViewModel.Screen.MainMenu -> onExitRequested()
             is MainViewModel.Screen.Join -> onNavigateToMain()
@@ -41,7 +40,7 @@ fun AppRoot(
     }
 
     Box(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
-        when (val screen = uiState.screen) {
+        when (uiState.screen) {
             is MainViewModel.Screen.Name -> {
                 NameScreen(initial = uiState.playerName ?: "", onConfirm = onNameConfirm)
             }

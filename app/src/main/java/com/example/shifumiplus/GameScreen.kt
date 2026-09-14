@@ -1,5 +1,6 @@
 package com.example.shifumiplus.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -12,6 +13,7 @@ import com.example.shifumiplus.R
 import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.ActionButton
 import com.example.shifumiplus.ui.PlayerView
+import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable
@@ -23,16 +25,25 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
     var targetMode by remember { mutableStateOf<String?>(null) }
     val selectedTargets = remember { mutableStateListOf<String>() }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier
+    Surface(
+        modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)) {
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BackgroundColor)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
                 val count = alivePlayers.size.coerceAtLeast(1)
-                val meIndex = alivePlayers.indexOfFirst { it.name == me }.let { if (it == -1) 0 else it }
+                val meIndex =
+                    alivePlayers.indexOfFirst { it.name == me }.let { if (it == -1) 0 else it }
 
                 alivePlayers.forEachIndexed { j, player ->
                     val relativeIndex = (j - meIndex + count) % count
@@ -67,132 +78,126 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                     }
                                 } else Modifier
                             )
-                    )
+                        )
+                    }
                 }
-            }
 
-            Column(modifier = Modifier.fillMaxWidth()) {
-                if (isEliminated) {
-                    Text("Tu as été éliminé. Tu peux regarder la suite de la partie.", color = MaterialTheme.colorScheme.secondary)
-                } else if (myChoice == null) {
-                    Text("Your action:", color = MaterialTheme.colorScheme.secondary)
-                    if (targetMode == null) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Row {
-                                Row(modifier = Modifier.weight(1f)) {
-                                    ActionButton(
-                                        icon = R.drawable.reload,
-                                        enabled = true,
-                                        onPress = { onSubmit("Reload", null) })
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (isEliminated) {
+                        Text(
+                            "Tu as été éliminé. Tu peux regarder la suite de la partie.",
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    } else if (myChoice == null) {
+                        Text("Your action:", color = MaterialTheme.colorScheme.secondary)
+                        if (targetMode == null) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                Row {
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        ActionButton(
+                                            icon = R.drawable.reload,
+                                            enabled = true,
+                                            onPress = { onSubmit("Reload", null) })
+                                    }
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        ActionButton(
+                                            icon = R.drawable.shield,
+                                            enabled = myState?.protectedLastTurn != true,
+                                            onPress = { onSubmit("Protect", null) })
+                                    }
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        ActionButton(
+                                            icon = R.drawable.shoot,
+                                            enabled = (myState?.bullets ?: 0) > 0,
+                                            onPress = { targetMode = "Shoot" })
+                                    }
                                 }
-                                Row(modifier = Modifier.weight(1f)) {
-                                    ActionButton(
-                                        icon = R.drawable.shield,
-                                        enabled = myState?.protectedLastTurn != true,
-                                        onPress = { onSubmit("Protect", null) })
-                                }
-                                Row(modifier = Modifier.weight(1f)) {
-                                    ActionButton(
-                                        icon = R.drawable.shoot,
-                                        enabled = (myState?.bullets ?: 0) > 0,
-                                        onPress = { targetMode = "Shoot" })
+                                Row {
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        ActionButton(
+                                            icon = R.drawable.doubleshoot,
+                                            redStyle = true,
+                                            enabled = (myState?.bullets
+                                                ?: 0) >= 2 && (myState?.usedDoubleShoot != true),
+                                            onPress = { targetMode = "Double" })
+                                    }
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        ActionButton(
+                                            icon = R.drawable.supershield,
+                                            redStyle = true,
+                                            enabled = myState?.usedSuperProtection != true,
+                                            onPress = { onSubmit("SuperProtect", null) })
+                                    }
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        ActionButton(
+                                            icon = R.drawable.bombe,
+                                            redStyle = true,
+                                            enabled = (myState?.bullets
+                                                ?: 0) >= 2 && (myState?.usedBomb != true),
+                                            onPress = { onSubmit("Bomb", null) })
+                                    }
+                                    Row(modifier = Modifier.weight(1f)) {
+                                        ActionButton(
+                                            icon = R.drawable.stop,
+                                            redStyle = true,
+                                            enabled = myState?.usedBlock != true,
+                                            onPress = { targetMode = "Block" })
+                                    }
                                 }
                             }
-                            Row {
-                                Row(modifier = Modifier.weight(1f)) {
-                                    ActionButton(
-                                        icon = R.drawable.doubleshoot,
-                                        redStyle = true,
-                                        enabled = (myState?.bullets
-                                            ?: 0) >= 2 && (myState?.usedDoubleShoot != true),
-                                        onPress = { targetMode = "Double" })
-                                }
-                                Row(modifier = Modifier.weight(1f)) {
-                                    ActionButton(
-                                        icon = R.drawable.supershield,
-                                        redStyle = true,
-                                        enabled = myState?.usedSuperProtection != true,
-                                        onPress = { onSubmit("SuperProtect", null) })
-                                }
-                                Row(modifier = Modifier.weight(1f)) {
-                                    ActionButton(
-                                        icon = R.drawable.bombe,
-                                        redStyle = true,
-                                        enabled = (myState?.bullets
-                                            ?: 0) >= 2 && (myState?.usedBomb != true),
-                                        onPress = { onSubmit("Bomb", null) })
-                                }
-                                Row(modifier = Modifier.weight(1f)) {
-                                    ActionButton(
-                                        icon = R.drawable.stop,
-                                        redStyle = true,
-                                        enabled = myState?.usedBlock != true,
-                                        onPress = { targetMode = "Block" })
-                                }
-                            }
+                        } else {
+                            Text(
+                                when (targetMode) {
+                                    "Shoot" -> "Clique sur le joueur ciblé dans le cercle."
+                                    "Double" -> "Clique deux fois sur les cibles dans le cercle."
+                                    "Block" -> "Clique sur le joueur à bloquer dans le cercle."
+                                    else -> "Choisis une cible"
+                                }, color = MaterialTheme.colorScheme.secondary
+                            )
                         }
-                    }
-                    else {
-                        Text(when (targetMode) {
-                            "Shoot" -> "Clique sur le joueur ciblé dans le cercle."
-                            "Double" -> "Clique deux fois sur les cibles dans le cercle."
-                            "Block" -> "Clique sur le joueur à bloquer dans le cercle."
-                            else -> "Choisis une cible"
-                        }, color = MaterialTheme.colorScheme.secondary)
-                    }
-                } else {
-                    Text("En attente des autres joueurs...", color = MaterialTheme.colorScheme.secondary)
-                    Text("Choix enregistré: ${myChoice["action"]}", modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.secondary)
-                    if (myChoice["action"] == "Shoot" || myChoice["action"] == "Block") Text("Cible: ${myChoice["target"]}", color = MaterialTheme.colorScheme.secondary)
-                    if (myChoice["action"] == "DoubleShoot") Text("Cibles: ${myChoice["target"]}", color = MaterialTheme.colorScheme.secondary)
+                    } else {
+                        Text(
+                            "En attente des autres joueurs...",
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            "Choix enregistré: ${myChoice["action"]}",
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        if (myChoice["action"] == "Shoot" || myChoice["action"] == "Block") Text(
+                            "Cible: ${myChoice["target"]}",
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        if (myChoice["action"] == "DoubleShoot") Text(
+                            "Cibles: ${myChoice["target"]}",
+                            color = MaterialTheme.colorScheme.secondary
+                        )
 
-                    val otherPlayers = players.filter { it.name != me }
-                    if (otherPlayers.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(40.dp))
-                        Text("Autres joueurs:", color = MaterialTheme.colorScheme.secondary)
-                        otherPlayers.forEach { p ->
-                            val chosen = choices.containsKey(p.name)
-                            val stateText = when {
-                                p.lives <= 0 -> "Éliminé"
-                                chosen -> "A choisi"
-                                else -> "En attente"
+                        val otherPlayers = players.filter { it.name != me }
+                        if (otherPlayers.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(40.dp))
+                            Text("Autres joueurs:", color = MaterialTheme.colorScheme.secondary)
+                            otherPlayers.forEach { p ->
+                                val chosen = choices.containsKey(p.name)
+                                val stateText = when {
+                                    p.lives <= 0 -> "Éliminé"
+                                    chosen -> "A choisi"
+                                    else -> "En attente"
+                                }
+                                Text(
+                                    "${p.name}: $stateText",
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
                             }
-                            Text("${p.name}: $stateText", color = MaterialTheme.colorScheme.secondary)
                         }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun FinalRankingScreen(ranking: List<String>, onFinish: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text("Classement final", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.secondary)
-            Spacer(modifier = Modifier.height(16.dp))
-            ranking.forEachIndexed { index, name ->
-                Text("${index + 1}. $name", color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(vertical = 4.dp))
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onFinish,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-            ) {
-                Text("Terminer", color = MaterialTheme.colorScheme.secondary)
-            }
-        }
-    }
 }
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800)

@@ -2,6 +2,8 @@ package com.example.shifumiplus
 
 import android.content.Context
 import android.os.Bundle
+import androidx.compose.ui.graphics.toArgb
+import com.example.shifumiplus.ui.theme.BackgroundColor
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,6 +20,11 @@ class AppActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        setTheme(R.style.Theme_ShiFuMiPlus)
+
+        // Make navigation bar match app background color while keeping navigation controls visible
+        window.navigationBarColor = BackgroundColor.toArgb()
 
         val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val savedName = prefs.getString("player_name", null)
