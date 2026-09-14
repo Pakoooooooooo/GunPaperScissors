@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.shifumiplus.R
 import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.ActionButton
 import com.example.shifumiplus.ui.PlayerView
@@ -27,10 +28,9 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
             .fillMaxSize()
             .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
 
-            Spacer(modifier = Modifier.height(30.dp))
             Box(modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp)) {
+                .weight(1f)) {
                 val count = alivePlayers.size.coerceAtLeast(1)
                 val meIndex = alivePlayers.indexOfFirst { it.name == me }.let { if (it == -1) 0 else it }
 
@@ -40,7 +40,6 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                     val radius = 110
                     val x = (radius * Math.cos(angle)).toFloat()
                     val y = (radius * Math.sin(angle)).toFloat()
-                    val isSelected = selectedTargets.contains(player.name)
 
                     PlayerView(
                         player = player,
@@ -60,7 +59,8 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                                 targetMode = null
                                             }
                                         } else {
-                                            val act = if (targetMode == "Shoot") "Shoot" else "Block"
+                                            val act =
+                                                if (targetMode == "Shoot") "Shoot" else "Block"
                                             onSubmit(act, player.name)
                                             targetMode = null
                                         }
@@ -70,8 +70,6 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 if (isEliminated) {
@@ -83,38 +81,61 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            ActionButton(
-                                title = "Recharger",
-                                enabled = myChoice == null,
-                                onPress = { onSubmit("Reload", null) })
-                            ActionButton(
-                                title = "Se Protéger",
-                                enabled = myChoice == null && (myState?.protectedLastTurn != true),
-                                onPress = { onSubmit("Protect", null) })
-                            ActionButton(
-                                title = "Tirer",
-                                enabled = myChoice == null && (myState?.bullets ?: 0) > 0,
-                                onPress = { targetMode = "Shoot" })
-                            ActionButton(
-                                title = "Double Tire",
-                                enabled = myChoice == null && (myState?.bullets ?: 0) >= 2 && (myState?.usedDoubleShoot != true),
-                                onPress = { targetMode = "Double" })
-                            ActionButton(
-                                title = "Super Protection",
-                                enabled = myChoice == null && (myState?.usedSuperProtection != true),
-                                onPress = { onSubmit("SuperProtect", null) })
-                            ActionButton(
-                                title = "Bombe",
-                                enabled = myChoice == null && (myState?.bullets ?: 0) >= 2 && (myState?.usedBomb != true),
-                                onPress = { onSubmit("Bomb", null) })
-                            ActionButton(
-                                title = "Bloquage",
-                                enabled = myChoice == null && (myState?.usedBlock != true),
-                                onPress = { targetMode = "Block" })
+                            Row {
+                                Row(modifier = Modifier.weight(1f)) {
+                                    ActionButton(
+                                        icon = R.drawable.reload,
+                                        enabled = true,
+                                        onPress = { onSubmit("Reload", null) })
+                                }
+                                Row(modifier = Modifier.weight(1f)) {
+                                    ActionButton(
+                                        icon = R.drawable.shield,
+                                        enabled = myState?.protectedLastTurn != true,
+                                        onPress = { onSubmit("Protect", null) })
+                                }
+                                Row(modifier = Modifier.weight(1f)) {
+                                    ActionButton(
+                                        icon = R.drawable.shoot,
+                                        enabled = (myState?.bullets ?: 0) > 0,
+                                        onPress = { targetMode = "Shoot" })
+                                }
+                            }
+                            Row {
+                                Row(modifier = Modifier.weight(1f)) {
+                                    ActionButton(
+                                        icon = R.drawable.doubleshoot,
+                                        redStyle = true,
+                                        enabled = (myState?.bullets
+                                            ?: 0) >= 2 && (myState?.usedDoubleShoot != true),
+                                        onPress = { targetMode = "Double" })
+                                }
+                                Row(modifier = Modifier.weight(1f)) {
+                                    ActionButton(
+                                        icon = R.drawable.supershield,
+                                        redStyle = true,
+                                        enabled = myState?.usedSuperProtection != true,
+                                        onPress = { onSubmit("SuperProtect", null) })
+                                }
+                                Row(modifier = Modifier.weight(1f)) {
+                                    ActionButton(
+                                        icon = R.drawable.bombe,
+                                        redStyle = true,
+                                        enabled = (myState?.bullets
+                                            ?: 0) >= 2 && (myState?.usedBomb != true),
+                                        onPress = { onSubmit("Bomb", null) })
+                                }
+                                Row(modifier = Modifier.weight(1f)) {
+                                    ActionButton(
+                                        icon = R.drawable.stop,
+                                        redStyle = true,
+                                        enabled = myState?.usedBlock != true,
+                                        onPress = { targetMode = "Block" })
+                                }
+                            }
                         }
                     }
-
-                    if (targetMode != null) {
+                    else {
                         Text(when (targetMode) {
                             "Shoot" -> "Clique sur le joueur ciblé dans le cercle."
                             "Double" -> "Clique deux fois sur les cibles dans le cercle."
@@ -124,15 +145,13 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                     }
                 } else {
                     Text("En attente des autres joueurs...", color = MaterialTheme.colorScheme.secondary)
-                    if (myChoice != null) {
-                        Text("Choix enregistré: ${myChoice["action"]}", modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.secondary)
-                        if (myChoice["action"] == "Shoot" || myChoice["action"] == "Block") Text("Cible: ${myChoice["target"]}", color = MaterialTheme.colorScheme.secondary)
-                        if (myChoice["action"] == "DoubleShoot") Text("Cibles: ${myChoice["target"]}", color = MaterialTheme.colorScheme.secondary)
-                    }
+                    Text("Choix enregistré: ${myChoice["action"]}", modifier = Modifier.padding(top = 8.dp), color = MaterialTheme.colorScheme.secondary)
+                    if (myChoice["action"] == "Shoot" || myChoice["action"] == "Block") Text("Cible: ${myChoice["target"]}", color = MaterialTheme.colorScheme.secondary)
+                    if (myChoice["action"] == "DoubleShoot") Text("Cibles: ${myChoice["target"]}", color = MaterialTheme.colorScheme.secondary)
 
                     val otherPlayers = players.filter { it.name != me }
                     if (otherPlayers.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(40.dp))
                         Text("Autres joueurs:", color = MaterialTheme.colorScheme.secondary)
                         otherPlayers.forEach { p ->
                             val chosen = choices.containsKey(p.name)
@@ -188,7 +207,7 @@ fun GameScreenPreview() {
     )
 
     val choices: Map<String, Map<String, Any>> = mapOf(
-        "Pako" to mapOf("action" to "Shoot", "target" to "Alice"),
+        //"Pako" to mapOf("action" to "Protect"),
         "Alice" to mapOf("action" to "Protect"),
         "Bob" to mapOf("action" to "DoubleShoot", "target" to "Alice;Eve")
     )

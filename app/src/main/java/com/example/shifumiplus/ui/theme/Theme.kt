@@ -1,6 +1,5 @@
 package com.example.shifumiplus.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -18,14 +17,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 
 private val DarkColorScheme = darkColorScheme(
     primary = DarkGrey,
-    secondary = Blue,
+    secondary = ActionRed,
     tertiary = LiteGrey,
     background = White,
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = White,
-    secondary = Blue,
+    secondary = ActionRed,
     tertiary = LiteGrey,
     background = White,
     surface = White,
