@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,14 +31,11 @@ fun PlayerView(player: PlayerState, modifier: Modifier = Modifier) {
     Box(modifier = modifier.clip(MaterialTheme.shapes.medium)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.align(Alignment.Center)
+            modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.face),
-                contentDescription = "Description de l'image",
-                modifier = Modifier
-                    .height(60.dp)
-                    .fillMaxWidth()
+            PlayerPP(Modifier
+                .height(60.dp)
+                .fillMaxWidth()
             )
             Text(
                 player.name,
@@ -46,6 +44,7 @@ fun PlayerView(player: PlayerState, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.secondary
             )
             ItemList(player.lives, "heart", 10.dp)
+            Spacer(modifier = Modifier.height(3.dp))
             ItemList(player.bullets, "bullet", 12.dp)
             if (player.protectedLastTurn) Text("Protected", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary)
         }
@@ -100,7 +99,7 @@ fun ItemList(number: Int, type: String, size: Dp) {
         else -> R.drawable.heart
     }
     Row (
-        modifier = Modifier.padding(horizontal = 20.dp)
+        modifier = Modifier.padding(horizontal = 35.dp)
     ) {
         OverlappingRow(modifier = Modifier.fillMaxWidth()) {
             for (i in 0 until number) {
