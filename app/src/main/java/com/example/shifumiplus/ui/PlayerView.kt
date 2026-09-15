@@ -1,9 +1,11 @@
 package com.example.shifumiplus.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -12,24 +14,102 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.shifumiplus.R
 import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable
 fun PlayerView(player: PlayerState, modifier: Modifier = Modifier) {
     // Modifier should include size/offset/align when called from a Box scope
-    Box(modifier = modifier
-        .clip(MaterialTheme.shapes.medium)
-        .background(MaterialTheme.colorScheme.tertiary)
-        .padding(0.dp)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.align(Alignment.Center)) {
-            Text(player.name, fontSize = 16.sp, color = MaterialTheme.colorScheme.secondary)
-            Text("Lives: ${player.lives}", fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
-            Text("Bullets: ${player.bullets}", fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
+    Box(modifier = modifier.clip(MaterialTheme.shapes.medium)) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.face),
+                contentDescription = "Description de l'image",
+                modifier = Modifier
+                    .height(60.dp)
+                    .fillMaxWidth()
+            )
+            Text(
+                player.name,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            ItemList(player.lives, "heart", 10.dp)
+            ItemList(player.bullets, "bullet", 12.dp)
             if (player.protectedLastTurn) Text("Protected", fontSize = 10.sp, color = MaterialTheme.colorScheme.secondary)
+        }
+    }
+}
+
+@Composable
+fun OverlappingRow(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Layout(
+        content = content,
+        modifier = modifier
+    ) { measurables, constraints ->
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
+        val count = placeables.size
+
+        if (count == 0) {
+            return@Layout layout(0, 0) {}
+        }
+
+        val itemWidth = placeables.maxOf { it.width }
+        val maxHeight = placeables.maxOf { it.height }
+        val maxWidth = constraints.maxWidth
+
+        // Calcule le décalage entre chaque élément
+        // Si tout rentre sans déborder, on utilise la largeur normale
+        // Sinon, on compresse l'espacement pour que tout tienne dans maxWidth
+        val step = if (count * itemWidth <= maxWidth || count == 1) {
+            itemWidth
+        } else {
+            (maxWidth - itemWidth) / (count - 1)
+        }
+
+        val totalWidth = if (count == 1) itemWidth else minOf(maxWidth, itemWidth + (count - 1) * step)
+
+        layout(totalWidth, maxHeight) {
+            var xPosition = 0
+            placeables.forEach { placeable ->
+                placeable.placeRelative(x = xPosition, y = 0)
+                xPosition += step
+            }
+        }
+    }
+}
+
+@Composable
+fun ItemList(number: Int, type: String, size: Dp) {
+    val drawableRes = when (type) {
+        "bullet" -> R.drawable.bullet
+        else -> R.drawable.heart
+    }
+    Row (
+        modifier = Modifier.padding(horizontal = 20.dp)
+    ) {
+        OverlappingRow(modifier = Modifier.fillMaxWidth()) {
+            for (i in 0 until number) {
+                Image(
+                    painter = painterResource(id = drawableRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(size)
+                )
+            }
         }
     }
 }
@@ -41,7 +121,7 @@ fun PlayerViewPreview() {
     ShiFuMiPlusTheme(darkTheme = false, dynamicColor = false) {
         val player = PlayerState(
             name = "Pako",
-            lives = 3,
+            lives = 5,
             bullets = 2,
             protectedLastTurn = true,
             usedDoubleShoot = false,
@@ -50,8 +130,10 @@ fun PlayerViewPreview() {
             usedBlock = false
         )
         // Center the PlayerView in preview
-        Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            PlayerView(player = player, modifier = Modifier.size(100.dp))
+        Box(modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)) {
+            PlayerView(player = player, modifier = Modifier)
         }
     }
 }

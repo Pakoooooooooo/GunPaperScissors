@@ -7,8 +7,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.R
 import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.ActionButton
@@ -55,7 +57,8 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                     PlayerView(
                         player = player,
                         modifier = Modifier
-                            .size(100.dp)
+                            .width(100.dp)
+                            .height(130.dp)
                             .offset(x.dp, y.dp)
                             .align(Alignment.Center)
                             .then(
@@ -82,14 +85,24 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                     }
                 }
 
-                Column(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                ) {
                     if (isEliminated) {
                         Text(
                             "Tu as été éliminé. Tu peux regarder la suite de la partie.",
                             color = MaterialTheme.colorScheme.secondary
                         )
                     } else if (myChoice == null) {
-                        Text("Your action:", color = MaterialTheme.colorScheme.secondary)
+                        Text(
+                            "Your action:",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
                         if (targetMode == null) {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
