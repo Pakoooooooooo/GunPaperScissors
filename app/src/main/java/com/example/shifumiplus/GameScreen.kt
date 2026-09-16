@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
@@ -80,7 +81,12 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                         }
                                     }
                                 } else Modifier
-                            )
+                            ),
+                        if (myChoice == null) if (player.name in selectedTargets) "Shoot" else ""
+                                else if (player.name == me) if (myChoice["target"] == null) myChoice["action"] as? String ?: "" else ""
+                                else if (myChoice["target"] != null && player.name == myChoice["target"] as String) myChoice["action"] as? String ?: ""
+                                else if (myChoice["target"] != null && "${ player.name };${ player.name }" == myChoice["target"] as String) "DoubleShoot"
+                                else ""
                         )
                     }
                 }
@@ -174,26 +180,14 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                     } else {
                         Text(
                             "En attente des autres joueurs...",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.secondary
                         )
-                        Text(
-                            "Choix enregistré: ${myChoice["action"]}",
-                            modifier = Modifier.padding(top = 8.dp),
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                        if (myChoice["action"] == "Shoot" || myChoice["action"] == "Block") Text(
-                            "Cible: ${myChoice["target"]}",
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                        if (myChoice["action"] == "DoubleShoot") Text(
-                            "Cibles: ${myChoice["target"]}",
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-
+                        Spacer(modifier = Modifier.height(10.dp))
                         val otherPlayers = players.filter { it.name != me }
                         if (otherPlayers.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(40.dp))
-                            Text("Autres joueurs:", color = MaterialTheme.colorScheme.secondary)
                             otherPlayers.forEach { p ->
                                 val chosen = choices.containsKey(p.name)
                                 val stateText = when {
@@ -203,6 +197,7 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                 }
                                 Text(
                                     "${p.name}: $stateText",
+                                    fontSize = 20.sp,
                                     color = MaterialTheme.colorScheme.secondary
                                 )
                             }
@@ -225,7 +220,7 @@ fun GameScreenPreview() {
     )
 
     val choices: Map<String, Map<String, Any>> = mapOf(
-        //"Pako" to mapOf("action" to "Protect"),
+        "Pako" to mapOf("action" to "Protect"),
         "Alice" to mapOf("action" to "Protect"),
         "Bob" to mapOf("action" to "DoubleShoot", "target" to "Alice;Eve")
     )

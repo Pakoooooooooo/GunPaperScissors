@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -14,8 +16,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
@@ -32,21 +37,36 @@ fun JoinScreen(onJoin: (String) -> Unit, onBack: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(70.dp),
             verticalArrangement = Arrangement.Center
         ) {
-            Text("Enter game ID to join", color = MaterialTheme.colorScheme.secondary)
+            Text(
+                "Enter game ID",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            Spacer(modifier = Modifier.height(5.dp))
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 OutlinedTextField(
                     value = id,
-                    onValueChange = { id = it },
+                    onValueChange = { if (it.length <= 6) id = it.uppercase() },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.secondary)
+                    textStyle = LocalTextStyle.current.copy(
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                 )
-                MenuButton("Rejoindre", { if (id.isNotBlank()) onJoin(id.trim()) })
+                MenuButton(
+                    "Rejoindre",
+                    { if (id.isNotBlank()) onJoin(id.trim()) },
+                    id.length == 6
+                )
             }
         }
     }

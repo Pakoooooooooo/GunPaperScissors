@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun MenuButton(text: String, onPress: () -> Unit) {
+fun MenuButton(text: String, onPress: () -> Unit, enabled: Boolean = true) {
     Button(
         onClick = onPress,
         shape = RoundedCornerShape(15.dp),
@@ -25,7 +25,8 @@ fun MenuButton(text: String, onPress: () -> Unit) {
             .fillMaxWidth()
             .padding(top = 8.dp)
             .height(50.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = ActionRed)
+        colors = ButtonDefaults.buttonColors(containerColor = if (enabled) ActionRed else BackgroundColor),
+        enabled = enabled
     ) {
         Text(
             text,

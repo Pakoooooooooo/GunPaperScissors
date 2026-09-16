@@ -26,16 +26,16 @@ import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable
-fun PlayerView(player: PlayerState, modifier: Modifier = Modifier) {
+fun PlayerView(player: PlayerState, modifier: Modifier = Modifier, action: String = "") {
     // Modifier should include size/offset/align when called from a Box scope
     Box(modifier = modifier.clip(MaterialTheme.shapes.medium)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            PlayerPP(Modifier
-                .height(60.dp)
-                .fillMaxWidth()
+            PlayerPP(
+                Modifier.size(60.dp),
+                action
             )
             Text(
                 player.name,
@@ -132,7 +132,10 @@ fun PlayerViewPreview() {
         Box(modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)) {
-            PlayerView(player = player, modifier = Modifier)
+            PlayerView(
+                player = player,
+                modifier = Modifier,
+                "reload")
         }
     }
 }

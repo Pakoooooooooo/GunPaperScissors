@@ -52,7 +52,7 @@ fun LobbyScreen(
         Column(modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth()) {
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(90.dp))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -121,7 +121,7 @@ fun LobbyScreen(
                     }
                 }
             }
-            MenuButton("Commencer", onStart)
+            MenuButton("Commencer", onStart, players.size>1)
             //MenuButton("Retour", onBack)
         }
     }
