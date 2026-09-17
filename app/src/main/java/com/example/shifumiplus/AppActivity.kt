@@ -1,5 +1,6 @@
 package com.example.shifumiplus
 
+import android.content.Context
 import android.os.Bundle
 import androidx.compose.ui.graphics.toArgb
 import com.example.shifumiplus.ui.theme.BackgroundColor
@@ -12,9 +13,7 @@ import androidx.compose.runtime.getValue
 import com.example.shifumiplus.presentation.MainViewModel
 import com.example.shifumiplus.ui.AppRoot
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
-import androidx.core.content.edit
 
-@Suppress("DEPRECATION")
 class AppActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
@@ -27,11 +26,11 @@ class AppActivity : ComponentActivity() {
         // Make navigation bar match app background color while keeping navigation controls visible
         window.navigationBarColor = BackgroundColor.toArgb()
 
-        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val savedName = prefs.getString("player_name", null)
         if (!savedName.isNullOrBlank()) {
             viewModel.setPlayerName(savedName)
-            viewModel.navigateTo(MainViewModel.Screen.MainMenu)
+            viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.MainMenu)
         }
 
         setContent {
@@ -45,15 +44,15 @@ class AppActivity : ComponentActivity() {
                     uiState = state,
                     playerWins = playerWins,
                     onNameConfirm = { name ->
-                        prefs.edit { putString("player_name", name) }
+                        prefs.edit().putString("player_name", name).apply()
                         viewModel.setPlayerName(name)
-                        viewModel.navigateTo(MainViewModel.Screen.MainMenu)
+                        viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.MainMenu)
                     },
                     onCreateGame = { viewModel.createGame() },
                     onJoinRequest = { id -> viewModel.joinGame(id) },
                     onStartGame = { viewModel.startGame() },
-                    onNavigateToJoin = { viewModel.navigateTo(MainViewModel.Screen.Join) },
-                    onNavigateToMain = { viewModel.navigateTo(MainViewModel.Screen.MainMenu) },
+                    onNavigateToJoin = { viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.Join) },
+                    onNavigateToMain = { viewModel.navigateTo(com.example.shifumiplus.presentation.MainViewModel.Screen.MainMenu) },
                     onSubmitAction = { action, target -> viewModel.submitAction(action, target) },
                     onExitRequested = { finish() },
                     onLeaveGame = { viewModel.leaveGame() },
@@ -62,7 +61,7 @@ class AppActivity : ComponentActivity() {
                         winners.forEach { name ->
                             val key = playerWinKey(name)
                             val total = prefs.getInt(key, 0) + 1
-                            prefs.edit { putInt(key, total) }
+                            prefs.edit().putInt(key, total).apply()
                         }
                         viewModel.finishGame()
                     }
@@ -73,7 +72,7 @@ class AppActivity : ComponentActivity() {
 
     private fun playerWinKey(name: String): String = "player_win_count_${name.trim().lowercase()}"
 
-    private fun resolveWinners(players: List<PlayerState>): List<String> {
+    private fun resolveWinners(players: List<com.example.shifumiplus.domain.PlayerState>): List<String> {
         val alive = players.filter { it.lives > 0 }
         if (alive.size == 1) return listOf(alive.first().name)
         if (alive.isNotEmpty()) return alive.map { it.name }

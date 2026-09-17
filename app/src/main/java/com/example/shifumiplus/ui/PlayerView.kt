@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.R
-import com.example.shifumiplus.PlayerState
+import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable

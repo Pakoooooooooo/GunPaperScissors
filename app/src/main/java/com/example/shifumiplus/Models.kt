@@ -1,6 +1,8 @@
-package com.example.shifumiplus
+package com.example.shifumiplus.domain
 
 data class Player(val name: String)
+
+data class Game(val id: String, val players: List<Player>, val started: Boolean = false)
 
 // Runtime state for a player in a game
 data class PlayerState(

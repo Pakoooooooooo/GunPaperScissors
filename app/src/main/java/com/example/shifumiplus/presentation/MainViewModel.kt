@@ -2,7 +2,7 @@ package com.example.shifumiplus.presentation
 
 import androidx.lifecycle.ViewModel
 import com.example.shifumiplus.data.FirestoreRepository
-import com.example.shifumiplus.PlayerState
+import com.example.shifumiplus.domain.PlayerState
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -160,8 +160,8 @@ class MainViewModel : ViewModel() {
         val id = _uiState.value.currentGameId ?: return
         scope.launch {
             val ok = FirestoreRepository.startGame(id)
-            if (!ok) {
-                println("Couldn't join the game")
+            if (ok) {
+                // listener will initialize playersState
             }
         }
     }
@@ -179,7 +179,7 @@ class MainViewModel : ViewModel() {
 
     private fun isGameFinished(players: List<PlayerState>): Boolean {
         val alive = players.filter { it.lives > 0 }
-        return alive.size <= 1
+        return alive.size <= 1 || alive.isEmpty()
     }
 
     private fun computeFinalRanking(players: List<PlayerState>): List<String> {
@@ -307,7 +307,7 @@ class MainViewModel : ViewModel() {
             }
 
             // Apply normal hits (excluding those already handled by superProtected)
-            hits.forEach { (_, target) ->
+            hits.forEach { (shooter, target) ->
                 val tgt = stateByName[target]
                 if (tgt != null) {
                     // if target is superProtected or protectedThisTurn, they don't lose life

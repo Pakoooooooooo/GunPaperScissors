@@ -1,6 +1,6 @@
 package com.example.shifumiplus.data
 
-import android.annotation.SuppressLint
+import com.example.shifumiplus.domain.PlayerState
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -8,7 +8,6 @@ import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.tasks.await
 
 object FirestoreRepository {
-    @SuppressLint("StaticFieldLeak")
     private val db = Firebase.firestore
     private val games = db.collection("games")
 
@@ -51,7 +50,7 @@ object FirestoreRepository {
                 "usedBomb" to false,
                 "usedBlock" to false
             )
-            val currentPlayersState = (snap.get("playersState") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
+            val currentPlayersState = (snap.get("playersState") as? List<*>)?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
             val nextPlayersState = currentPlayersState + defaultState
             docRef.update(
                 mapOf(
@@ -84,14 +83,14 @@ object FirestoreRepository {
             "players" to nextPlayers
         )
 
-        val playersState = (snap.get("playersState") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
+        val playersState = (snap.get("playersState") as? List<*>)?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
         if (playersState.isNotEmpty()) {
             updates["playersState"] = playersState.filterNot { (it["name"] as? String) == playerName }
         }
 
         val choices = (snap.get("choices") as? Map<*, *>)?.mapNotNull { (k, v) ->
             val key = k as? String
-            val value = v as? Map<*, *>
+            val value = v as? Map<String, Any>
             if (key != null && value != null) key to value else null
         }?.toMap() ?: emptyMap()
         if (choices.isNotEmpty()) {
@@ -102,6 +101,20 @@ object FirestoreRepository {
 
         docRef.update(updates).await()
         return true
+    }
+
+    // initialize the runtime game state (players with lives/bullets) and mark started
+    suspend fun initializeGameState(idRaw: String, playerNames: List<String>) {
+        val id = normalizeId(idRaw)
+        val docRef = games.document(id)
+        val playersState = playerNames.map { mapOf("name" to it, "lives" to 3, "bullets" to 2, "protectedLastTurn" to false, "usedDoubleShoot" to false, "usedSuperProtection" to false, "usedBomb" to false, "usedBlock" to false) }
+        val payload = mapOf(
+            "playersState" to playersState,
+            "started" to true,
+            "choices" to mapOf<String, Any>(),
+            "turn" to 1
+        )
+        docRef.update(payload).await()
     }
 
     suspend fun submitChoice(idRaw: String, playerName: String, action: String, target: String?) {

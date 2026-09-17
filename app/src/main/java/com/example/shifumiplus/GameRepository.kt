@@ -1,6 +1,6 @@
 package com.example.shifumiplus.data
 
-import com.example.shifumiplus.Player
+import com.example.shifumiplus.domain.Player
 import java.util.Locale
 import kotlin.random.Random
 

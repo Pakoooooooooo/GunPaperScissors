@@ -7,11 +7,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.example.shifumiplus.presentation.MainViewModel
-import com.example.shifumiplus.GameScreen
-import com.example.shifumiplus.JoinScreen
-import com.example.shifumiplus.LobbyScreen
-import com.example.shifumiplus.MainMenuScreen
-import com.example.shifumiplus.NameScreen
+import com.example.shifumiplus.ui.screens.GameScreen
+import com.example.shifumiplus.ui.screens.JoinScreen
+import com.example.shifumiplus.ui.screens.LobbyScreen
+import com.example.shifumiplus.ui.screens.MainMenuScreen
+import com.example.shifumiplus.ui.screens.NameScreen
 
 @Composable
 fun AppRoot(
@@ -48,14 +48,15 @@ fun AppRoot(
                 MainMenuScreen(onNewGame = onCreateGame, onJoin = onNavigateToJoin)
             }
             is MainViewModel.Screen.Join -> {
-                JoinScreen(onJoin = onJoinRequest)
+                JoinScreen(onJoin = onJoinRequest, onBack = onNavigateToMain)
             }
             is MainViewModel.Screen.Lobby -> {
                 LobbyScreen(
                     gameId = uiState.currentGameId ?: "",
                     players = uiState.currentPlayers,
                     playerWins = playerWins,
-                    onStart = onStartGame
+                    onStart = onStartGame,
+                    onBack = onLeaveGame
                 )
             }
             is MainViewModel.Screen.Game -> {
