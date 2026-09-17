@@ -1,10 +1,5 @@
 package com.example.shifumiplus.domain
 
-// Identifier added to players so duplicate display names are allowed
-data class Player(val id: String, val name: String)
-
-data class Game(val id: String, val players: List<Player>, val started: Boolean = false)
-
 // Runtime state for a player in a game
 data class PlayerState(
     val id: String,

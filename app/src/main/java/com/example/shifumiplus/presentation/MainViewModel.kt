@@ -315,7 +315,7 @@ class MainViewModel : ViewModel() {
             }
 
             // Apply normal hits (excluding those already handled by superProtected)
-            hits.forEach { (shooterId, targetId) ->
+            hits.forEach { (_, targetId) ->
                 val tgt = stateById[targetId]
                 if (tgt != null) {
                     // if target is superProtected or protectedThisTurn, they don't lose life
