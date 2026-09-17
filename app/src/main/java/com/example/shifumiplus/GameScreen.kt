@@ -1,4 +1,4 @@
-package com.example.shifumiplus.ui.screens
+package com.example.shifumiplus
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,12 +12,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
-import com.example.shifumiplus.R
-import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.ActionButton
 import com.example.shifumiplus.ui.PlayerView
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
+import kotlin.collections.get
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
@@ -52,8 +53,8 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                     val relativeIndex = (j - meIndex + count) % count
                     val angle = (2 * Math.PI * relativeIndex / count) + Math.PI / 2
                     val radius = 110
-                    val x = (radius * Math.cos(angle)).toFloat()
-                    val y = (radius * Math.sin(angle)).toFloat()
+                    val x = (radius * cos(angle)).toFloat()
+                    val y = (radius * sin(angle)).toFloat()
 
                     PlayerView(
                         player = player,

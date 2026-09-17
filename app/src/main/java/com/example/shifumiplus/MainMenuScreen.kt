@@ -1,4 +1,4 @@
-package com.example.shifumiplus.ui.screens
+package com.example.shifumiplus
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
