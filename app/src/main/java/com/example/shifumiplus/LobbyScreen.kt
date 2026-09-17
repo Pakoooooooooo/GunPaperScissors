@@ -101,11 +101,8 @@ fun LobbyScreen(
                                 PlayerPP(Modifier.fillMaxHeight())
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    buildAnnotatedString {
-                                        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                            append(p.name)
-                                        }
-                                    },
+                                    p.name,
+                                    fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(vertical = 4.dp),
                                     color = MaterialTheme.colorScheme.secondary
                                 )

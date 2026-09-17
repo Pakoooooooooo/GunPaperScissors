@@ -3,23 +3,39 @@ package com.example.shifumiplus.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.R
 import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.ActionButton
+import com.example.shifumiplus.ui.PlayerPP
 import com.example.shifumiplus.ui.PlayerView
+import com.example.shifumiplus.ui.theme.ActionGreen
+import com.example.shifumiplus.ui.theme.ActionGreenTame
+import com.example.shifumiplus.ui.theme.ActionRed
 import com.example.shifumiplus.ui.theme.BackgroundColor
+import com.example.shifumiplus.ui.theme.Black
+import com.example.shifumiplus.ui.theme.DarkGrey
+import com.example.shifumiplus.ui.theme.LiteGrey
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
+import com.example.shifumiplus.ui.theme.White
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
@@ -53,7 +69,7 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                 alivePlayers.forEachIndexed { j, player ->
                     val relativeIndex = (j - meIndex + count) % count
                     val angle = (2 * Math.PI * relativeIndex / count) + Math.PI / 2
-                    val radius = 110
+                    val radius = 130
                     val x = (radius * cos(angle)).toFloat()
                     val y = (radius * sin(angle)).toFloat()
 
@@ -88,6 +104,9 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                 else if (player.name == me) if (myChoice["target"] == null) myChoice["action"] as? String ?: "" else ""
                                 else if (myChoice["target"] != null && player.name == myChoice["target"] as String) myChoice["action"] as? String ?: ""
                                 else if (myChoice["target"] != null && "${ player.name };${ player.name }" == myChoice["target"] as String) "DoubleShoot"
+                                else if (myChoice["target"] != null && (
+                                    player.name == (myChoice["target"] as String).substringBefore(";") ||
+                                    player.name == (myChoice["target"] as String).substringAfter(";"))) "Shoot"
                                 else ""
                         )
                     }
@@ -100,8 +119,10 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                 ) {
                     if (isEliminated) {
                         Text(
-                            "Tu as été éliminé. Tu peux regarder la suite de la partie.",
-                            color = MaterialTheme.colorScheme.secondary
+                            "☠",
+                            fontSize = 70.sp,
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = LiteGrey
                         )
                     } else if (myChoice == null) {
                         Text(
@@ -172,9 +193,9 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                         } else {
                             Text(
                                 when (targetMode) {
-                                    "Shoot" -> "Clique sur le joueur ciblé dans le cercle."
-                                    "Double" -> "Clique deux fois sur les cibles dans le cercle."
-                                    "Block" -> "Clique sur le joueur à bloquer dans le cercle."
+                                    "Shoot" -> "Clique sur le joueur cible."
+                                    "Double" -> "Clique sur les deux joueurs cibles. (tu peux choisir le même joueur)"
+                                    "Block" -> "Clique sur le joueur à bloquer."
                                     else -> "Choisis une cible"
                                 }, color = MaterialTheme.colorScheme.secondary
                             )
@@ -190,18 +211,96 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                         Spacer(modifier = Modifier.height(10.dp))
                         val otherPlayers = players.filter { it.name != me }
                         if (otherPlayers.isNotEmpty()) {
-                            otherPlayers.forEach { p ->
-                                val chosen = choices.containsKey(p.name)
-                                val stateText = when {
-                                    p.lives <= 0 -> "Éliminé"
-                                    chosen -> "A choisi"
-                                    else -> "En attente"
+                            Column(
+                                modifier =
+                                    if (otherPlayers.size < 3) Modifier
+                                        .fillMaxWidth()
+                                        .height((60*otherPlayers.size).dp)
+                                    else Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight()
+                            ){
+                                otherPlayers.forEach { p ->
+                                    val chosen = choices.containsKey(p.name)
+                                    val stateText = when {
+                                        p.lives <= 0 -> "eliminated"
+                                        chosen -> "chosen"
+                                        else -> "penting"
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                when (stateText) {
+                                                    "eliminated" -> Black
+                                                    "chosen" -> ActionGreen
+                                                    else -> DarkGrey
+                                                }
+                                            )
+                                            .padding(5.dp)
+                                    ) {
+                                        Row (
+                                            horizontalArrangement = Arrangement.Start,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            PlayerPP(Modifier.fillMaxHeight())
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                p.name,
+                                                fontSize = if (otherPlayers.size >= 3) (17 - otherPlayers.size).sp else 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .align(Alignment.CenterVertically),
+                                                color = when (stateText) {
+                                                    "eliminated" -> LiteGrey
+                                                    "chosen" -> ActionGreenTame
+                                                    else -> ActionRed
+                                                },
+                                                style = LocalTextStyle.current.copy(
+                                                    platformStyle = PlatformTextStyle(
+                                                        includeFontPadding = false
+                                                    ),
+                                                    lineHeightStyle = LineHeightStyle(
+                                                        alignment = LineHeightStyle.Alignment.Center,
+                                                        trim = LineHeightStyle.Trim.Both
+                                                    )
+                                                )
+                                            )
+                                            Text(
+                                                when (stateText) {
+                                                    "eliminated" -> "☠"
+                                                    "chosen" -> "✔"
+                                                    else -> "..."
+                                                },
+                                                fontSize = if (otherPlayers.size >= 3) (20 - otherPlayers.size*4/3).sp else 15.sp,
+                                                fontWeight = when (stateText) {
+                                                    "eliminated" -> FontWeight.Thin
+                                                    "chosen" -> FontWeight.Thin
+                                                    else -> FontWeight.Bold
+                                                },
+                                                color = when (stateText) {
+                                                    "eliminated" -> LiteGrey
+                                                    "chosen" -> ActionGreenTame
+                                                    else -> ActionRed
+                                                },
+                                                style = LocalTextStyle.current.copy(
+                                                    platformStyle = PlatformTextStyle(
+                                                        includeFontPadding = false
+                                                    ),
+                                                    lineHeightStyle = LineHeightStyle(
+                                                        alignment = LineHeightStyle.Alignment.Center,
+                                                        trim = LineHeightStyle.Trim.Both
+                                                    )
+                                                )
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(5.dp))
                                 }
-                                Text(
-                                    "${p.name}: $stateText",
-                                    fontSize = 20.sp,
-                                    color = MaterialTheme.colorScheme.secondary
-                                )
                             }
                         }
                     }
@@ -214,17 +313,18 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
 @Composable
 fun GameScreenPreview() {
     val players = listOf(
-        PlayerState(name = "Pako", lives = 3, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(name = "Pako", lives = 2, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Bob", lives = 1, bullets = 0, protectedLastTurn = false, usedDoubleShoot = true, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Eve", lives = 4, bullets = 3, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = true, usedBomb = false, usedBlock = false),
+        PlayerState(name = "Edd", lives = 0, bullets = 3, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = true, usedBomb = false, usedBlock = false),
         PlayerState(name = "Steve", lives = 3, bullets = 5, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = true, usedBomb = false, usedBlock = false)
     )
 
     val choices: Map<String, Map<String, Any>> = mapOf(
-        "Pako" to mapOf("action" to "Protect"),
-        "Alice" to mapOf("action" to "Protect"),
-        "Bob" to mapOf("action" to "DoubleShoot", "target" to "Alice;Eve")
+        "Pako" to mapOf("action" to "DoubleShoot")
     )
 
     // Force light theme + disable dynamic colors so preview background is white
@@ -232,4 +332,3 @@ fun GameScreenPreview() {
         GameScreen(players = players, me = "Pako", choices = choices) { _, _ -> }
     }
 }
-
