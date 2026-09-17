@@ -33,7 +33,7 @@ object FirestoreRepository {
         val snap = docRef.get().await()
         if (!snap.exists()) return false
 
-        val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+        val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
         val players = playersRaw.mapNotNull { it["id"] as? String }
         val initialPlayers = (snap.get("initialPlayers") as? List<*>)?.mapNotNull { it as? String } ?: players
         val started = snap.getBoolean("started") ?: false
@@ -79,7 +79,7 @@ object FirestoreRepository {
         val snap = docRef.get().await()
         if (!snap.exists()) return false
 
-        val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+        val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
         val nextPlayersRaw = playersRaw.filterNot { (it["id"] as? String) == playerId }
 
         if (nextPlayersRaw.isEmpty()) {
@@ -111,32 +111,6 @@ object FirestoreRepository {
         return true
     }
 
-    suspend fun initializeGameState(idRaw: String, playerEntries: List<Map<String, String>>) {
-        val id = normalizeId(idRaw)
-        val docRef = games.document(id)
-        val playersState = playerEntries.map { entry ->
-            mapOf(
-                "id" to (entry["id"] ?: ""),
-                "name" to (entry["name"] ?: ""),
-                "lives" to 3,
-                "bullets" to 2,
-                "protectedLastTurn" to false,
-                "usedDoubleShoot" to false,
-                "usedSuperProtection" to false,
-                "usedBomb" to false,
-                "usedBlock" to false
-            )
-        }
-        val payload = mapOf(
-            "playersState" to playersState,
-            "started" to true,
-            "choices" to mapOf<String, Any>(),
-            "turn" to 1,
-            "initialPlayers" to playerEntries.mapNotNull { it["id"] }
-        )
-        docRef.update(payload).await()
-    }
-
     suspend fun submitChoice(idRaw: String, playerId: String, action: String, target: String?) {
         val id = normalizeId(idRaw)
         val docRef = games.document(id)
@@ -151,7 +125,7 @@ object FirestoreRepository {
         return games.document(id).addSnapshotListener { snap, _ ->
             if (snap == null || !snap.exists()) return@addSnapshotListener
 
-            val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+            val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
             if (playersRaw.isEmpty()) {
                 snap.reference.delete()
                 return@addSnapshotListener
@@ -191,7 +165,7 @@ object FirestoreRepository {
         val id = normalizeId(idRaw)
         val docRef = games.document(id)
         val snap = docRef.get().await()
-        val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<String, Any> } ?: emptyList()
+        val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
         val players = playersRaw.mapNotNull { (it["id"] as? String) }
         return if (snap.exists() && players.size >= 2) {
             val playersState = playersRaw.map { entry ->
