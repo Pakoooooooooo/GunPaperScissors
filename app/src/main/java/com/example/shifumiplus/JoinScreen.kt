@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.ui.theme.BackgroundColor
+import com.example.shifumiplus.ui.theme.Bronson
 import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
@@ -41,9 +42,10 @@ fun JoinScreen(onJoin: (String) -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                "Enter game ID",
+                "Entrer l'ID du Jeu",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = Bronson,
                 color = MaterialTheme.colorScheme.secondary
             )
             Spacer(modifier = Modifier.height(5.dp))
@@ -59,6 +61,7 @@ fun JoinScreen(onJoin: (String) -> Unit) {
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
+                        fontFamily = Bronson,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 )

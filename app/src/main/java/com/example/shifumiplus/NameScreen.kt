@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.ui.PlayerPP
 import com.example.shifumiplus.ui.theme.BackgroundColor
+import com.example.shifumiplus.ui.theme.Bronson
 import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
@@ -52,9 +53,10 @@ fun NameScreen(initial: String = "", onConfirm: (String) -> Unit) {
             }
             Spacer(modifier = Modifier.height(50.dp))
             Text(
-                "Choose your name",
+                "Choisi ton nom",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = Bronson,
                 color = MaterialTheme.colorScheme.secondary
             )
             Spacer(modifier = Modifier.height(5.dp))
@@ -71,7 +73,7 @@ fun NameScreen(initial: String = "", onConfirm: (String) -> Unit) {
                 )
             )
             MenuButton(
-                "Confirm",
+                "Confirmer",
                 { if (name.isNotBlank()) onConfirm(name.trim()) },
                 name.isNotBlank()
             )

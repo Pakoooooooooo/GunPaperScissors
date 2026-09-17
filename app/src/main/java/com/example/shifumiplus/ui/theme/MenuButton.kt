@@ -31,7 +31,8 @@ fun MenuButton(text: String, onPress: () -> Unit, enabled: Boolean = true) {
             text,
             color = DarkGrey,
             fontSize = 20.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            fontFamily = Bronson
         )
     }
 }

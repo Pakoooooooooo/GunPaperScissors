@@ -10,12 +10,19 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.R
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.MenuButton
@@ -42,7 +49,7 @@ fun MainMenuScreen(onNewGame: () -> Unit, onJoin: () -> Unit) {
             Spacer(modifier = Modifier.height(60.dp))
             Column(
                 modifier = Modifier
-                    .width(250.dp)
+                    .width(260.dp)
                     .padding(5.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -52,6 +59,25 @@ fun MainMenuScreen(onNewGame: () -> Unit, onJoin: () -> Unit) {
                 MenuButton("Rejoindre une partie", onJoin)
             }
             Spacer(modifier = Modifier.height(120.dp))
+        }
+        Box(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            Text(
+                text = buildAnnotatedString {
+                    append("Sonapyx")
+                    withStyle(
+                        style = SpanStyle(
+                            baselineShift = BaselineShift.Superscript,
+                            fontSize = 10.sp // ajuste selon la taille de ton texte principal
+                        )
+                    ) {
+                        append("®")
+                    }
+                },
+                modifier = Modifier.padding(10.dp),
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
     }
 }

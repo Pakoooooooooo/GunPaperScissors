@@ -1,4 +1,4 @@
-package com.example.shifumiplus.ui
+package com.example.shifumiplus
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +21,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.shifumiplus.ui.theme.BackgroundColor
+import com.example.shifumiplus.ui.theme.Bronson
 import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
@@ -44,6 +45,7 @@ fun FinalRankingScreen(ranking: List<String>, onFinish: () -> Unit) {
                     "Classement final",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = Bronson,
                     color = MaterialTheme.colorScheme.secondary
                 )
                 Spacer(modifier = Modifier.height(16.dp))

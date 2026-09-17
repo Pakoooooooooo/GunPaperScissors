@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.example.shifumiplus.FinalRankingScreen
 import com.example.shifumiplus.presentation.MainViewModel
 import com.example.shifumiplus.ui.screens.GameScreen
 import com.example.shifumiplus.ui.screens.JoinScreen

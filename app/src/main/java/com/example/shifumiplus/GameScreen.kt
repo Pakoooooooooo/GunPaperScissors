@@ -26,6 +26,7 @@ import com.example.shifumiplus.ui.theme.ActionGreenTame
 import com.example.shifumiplus.ui.theme.ActionRed
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.Black
+import com.example.shifumiplus.ui.theme.Bronson
 import com.example.shifumiplus.ui.theme.DarkGrey
 import com.example.shifumiplus.ui.theme.LiteGrey
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
@@ -123,9 +124,10 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                         )
                     } else if (myChoice == null) {
                         Text(
-                            "Your action:",
+                            "Que vas tu faire :",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
+                            fontFamily = Bronson,
                             color = MaterialTheme.colorScheme.secondary
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -203,6 +205,7 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
+                            fontFamily = Bronson,
                             color = MaterialTheme.colorScheme.secondary
                         )
                         Spacer(modifier = Modifier.height(10.dp))
@@ -323,7 +326,7 @@ fun GameScreenPreview() {
     )
 
     val choices: Map<String, Map<String, Any>> = mapOf(
-        "Pako" to mapOf("action" to "DoubleShoot")
+        //"Pako" to mapOf("action" to "DoubleShoot")
     )
 
     // Force light theme + disable dynamic colors so preview background is white

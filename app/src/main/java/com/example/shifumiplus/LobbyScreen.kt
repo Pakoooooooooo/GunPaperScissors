@@ -25,15 +25,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.DarkGrey
 import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.PlayerPP
+import com.example.shifumiplus.ui.theme.Bronson
 
 @Composable
 fun LobbyScreen(
@@ -62,21 +60,23 @@ fun LobbyScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Game ID",
+                        text = "ID du Jeu",
                         fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.secondary)
                     Text(
                         text = gameId.uppercase(),
                         fontSize = 45.sp,
+                        fontFamily = Bronson,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.secondary
                     )
                 }
                 Spacer(modifier = Modifier.height(60.dp))
                 Text(
-                    text = "Players:",
+                    text = "Joueurs:",
                     modifier = Modifier.padding(top = 8.dp),
                     fontWeight = FontWeight.Bold,
+                    fontFamily = Bronson,
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.secondary
                 )
