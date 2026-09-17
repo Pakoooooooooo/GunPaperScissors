@@ -53,6 +53,7 @@ fun PlayerPP(modifier: Modifier, action: String = ""){
                         "Protect" -> R.drawable.shield
                         "SuperProtect" -> R.drawable.supershield
                         "Bomb" -> R.drawable.bombe
+                        "BrokenShield" -> R.drawable.brokenshield
                         else -> R.drawable.stop
                     }),
                     contentDescription = "Description de l'image",

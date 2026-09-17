@@ -10,12 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
@@ -32,10 +29,8 @@ import com.example.shifumiplus.ui.theme.Black
 import com.example.shifumiplus.ui.theme.DarkGrey
 import com.example.shifumiplus.ui.theme.LiteGrey
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
-import com.example.shifumiplus.ui.theme.White
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 @Composable
 fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
@@ -77,7 +72,7 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                         player = player,
                         modifier = Modifier
                             .width(100.dp)
-                            .height(130.dp)
+                            .height(if (players.size <= 7) 110.dp else 90.dp)
                             .offset(x.dp, y.dp)
                             .align(Alignment.Center)
                             .then(
@@ -100,6 +95,7 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                     }
                                 } else Modifier
                             ),
+                        ppsize = if (players.size <= 7) 60 else 40,
                         if (myChoice == null) if (player.name in selectedTargets) "Shoot" else ""
                                 else if (player.name == me) if (myChoice["target"] == null) myChoice["action"] as? String ?: "" else ""
                                 else if (myChoice["target"] != null && player.name == myChoice["target"] as String) myChoice["action"] as? String ?: ""
@@ -314,6 +310,8 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
 fun GameScreenPreview() {
     val players = listOf(
         PlayerState(name = "Pako", lives = 2, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
