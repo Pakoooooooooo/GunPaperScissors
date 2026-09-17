@@ -26,7 +26,7 @@ import com.example.shifumiplus.domain.PlayerState
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable
-fun PlayerView(player: PlayerState, modifier: Modifier = Modifier, ppsize: Int, action: String = "") {
+fun PlayerView(player: PlayerState, modifier: Modifier = Modifier, ppsize: Int, action: String = "", isMe: Boolean) {
     // Modifier should include size/offset/align when called from a Box scope
     Box(modifier = modifier.clip(MaterialTheme.shapes.medium)) {
         Column(
@@ -35,7 +35,7 @@ fun PlayerView(player: PlayerState, modifier: Modifier = Modifier, ppsize: Int, 
         ) {
             PlayerPP(
                 Modifier.size(ppsize.dp),
-                if (player.protectedLastTurn) "BrokenShield" else action
+                if (player.protectedLastTurn && !isMe) "BrokenShield" else action
             )
             Text(
                 player.name,
@@ -135,7 +135,8 @@ fun PlayerViewPreview() {
                 player = player,
                 modifier = Modifier,
                 60,
-                "reload")
+                "reload",
+                false)
         }
     }
 }

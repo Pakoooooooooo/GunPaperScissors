@@ -103,7 +103,8 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                 else if (myChoice["target"] != null && (
                                     player.name == (myChoice["target"] as String).substringBefore(";") ||
                                     player.name == (myChoice["target"] as String).substringAfter(";"))) "Shoot"
-                                else ""
+                                else "",
+                        isMe = player.name == me
                         )
                     }
                 }
