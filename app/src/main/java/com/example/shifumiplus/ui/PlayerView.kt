@@ -119,6 +119,7 @@ fun PlayerViewPreview() {
     // Force light theme for preview
     ShiFuMiPlusTheme(darkTheme = false, dynamicColor = false) {
         val player = PlayerState(
+            id = "hgdicygw",
             name = "Pako",
             lives = 5,
             bullets = 2,

@@ -59,7 +59,7 @@ fun AppRoot(
                 )
             }
             is MainViewModel.Screen.Game -> {
-                GameScreen(players = uiState.currentPlayers, me = uiState.playerName, choices = uiState.choices, onSubmit = onSubmitAction)
+                GameScreen(players = uiState.currentPlayers, meId = uiState.playerId, choices = uiState.choices, onSubmit = onSubmitAction)
             }
             is MainViewModel.Screen.FinalRanking -> {
                 FinalRankingScreen(ranking = uiState.finalRanking, onFinish = onFinishGame)

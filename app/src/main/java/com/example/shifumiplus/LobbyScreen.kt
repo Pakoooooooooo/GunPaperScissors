@@ -131,15 +131,15 @@ fun LobbyScreen(
 fun LobbyScreenPreview() {
     ShiFuMiPlusTheme(darkTheme = false, dynamicColor = false) {
         val players = listOf(
-            PlayerState(name = "Pako", lives = 3, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
-            PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false)
+            PlayerState(id = "p1", name = "Pako", lives = 3, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+            PlayerState(id = "p2", name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false)
         )
         Box(modifier = Modifier
             .fillMaxSize()) {
             LobbyScreen(
                 gameId = "AR67QX",
                 players = players,
-                playerWins = mapOf("Pako" to 2, "Alice" to 1),
+                playerWins = mapOf("p1" to 2, "p2" to 1),
                 onStart = {}
             )
         }

@@ -38,7 +38,7 @@ class AppActivity : ComponentActivity() {
             ShiFuMiPlusTheme {
                 val state by viewModel.uiState.collectAsState()
                 val playerWins = state.currentPlayers.associate { player ->
-                    player.name to prefs.getInt(playerWinKey(player.name), 0)
+                    player.id to prefs.getInt(playerWinKey(player.id), 0)
                 }
 
                 AppRoot(
@@ -59,26 +59,26 @@ class AppActivity : ComponentActivity() {
                     onLeaveGame = { viewModel.leaveGame() },
                     onFinishGame = {
                         val winners = resolveWinners(state.currentPlayers)
-                        winners.forEach { name ->
-                            val key = playerWinKey(name)
+                        winners.forEach { id ->
+                            val key = playerWinKey(id)
                             val total = prefs.getInt(key, 0) + 1
                             prefs.edit { putInt(key, total) }
                         }
                         viewModel.finishGame()
-                    }
+                }
                 )
             }
         }
     }
 
-    private fun playerWinKey(name: String): String = "player_win_count_${name.trim().lowercase()}"
+    private fun playerWinKey(id: String): String = "player_win_count_${id}"
 
     private fun resolveWinners(players: List<com.example.shifumiplus.domain.PlayerState>): List<String> {
         val alive = players.filter { it.lives > 0 }
-        if (alive.size == 1) return listOf(alive.first().name)
-        if (alive.isNotEmpty()) return alive.map { it.name }
+        if (alive.size == 1) return listOf(alive.first().id)
+        if (alive.isNotEmpty()) return alive.map { it.id }
 
         val maxTurn = players.filter { it.lives <= 0 }.maxOfOrNull { it.eliminatedAtTurn ?: 0L } ?: 0L
-        return players.filter { it.lives <= 0 && (it.eliminatedAtTurn ?: 0L) == maxTurn }.map { it.name }
+        return players.filter { it.lives <= 0 && (it.eliminatedAtTurn ?: 0L) == maxTurn }.map { it.id }
     }
 }

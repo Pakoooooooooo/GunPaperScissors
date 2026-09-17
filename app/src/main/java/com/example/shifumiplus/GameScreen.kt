@@ -22,11 +22,11 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
-fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
+fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
     val alivePlayers = players.filter { it.lives > 0 }
-    val myState = players.find { it.name == me }
+    val myState = players.find { it.id == meId }
     val isEliminated = (myState?.lives ?: 1) <= 0
-    val myChoice = choices[me]
+    val myChoice = choices[meId]
     var targetMode by remember { mutableStateOf<String?>(null) }
     val selectedTargets = remember { mutableStateListOf<String>() }
 
@@ -48,7 +48,7 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
             ) {
                 val count = alivePlayers.size.coerceAtLeast(1)
                 val meIndex =
-                    alivePlayers.indexOfFirst { it.name == me }.let { if (it == -1) 0 else it }
+                    alivePlayers.indexOfFirst { it.id == meId }.let { if (it == -1) 0 else it }
 
                 alivePlayers.forEachIndexed { j, player ->
                     val relativeIndex = (j - meIndex + count) % count
@@ -65,10 +65,10 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                             .offset(x.dp, y.dp)
                             .align(Alignment.Center)
                             .then(
-                                if (myChoice == null && targetMode != null && player.name != me) {
+                                if (myChoice == null && targetMode != null && player.id != meId) {
                                     Modifier.clickable {
                                         if (targetMode == "Double") {
-                                            selectedTargets.add(player.name)
+                                            selectedTargets.add(player.id)
                                             if (selectedTargets.size == 2) {
                                                 val tstr = selectedTargets.joinToString(";")
                                                 onSubmit("DoubleShoot", tstr)
@@ -78,18 +78,18 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                         } else {
                                             val act =
                                                 if (targetMode == "Shoot") "Shoot" else "Block"
-                                            onSubmit(act, player.name)
+                                            onSubmit(act, player.id)
                                             targetMode = null
                                         }
                                     }
                                 } else Modifier
                             ),
-                        if (myChoice == null) if (player.name in selectedTargets) "Shoot" else ""
-                                else if (player.name == me) if (myChoice["target"] == null) myChoice["action"] as? String ?: "" else ""
-                                else if (myChoice["target"] != null && player.name == myChoice["target"] as String) myChoice["action"] as? String ?: ""
-                                else if (myChoice["target"] != null && "${ player.name };${ player.name }" == myChoice["target"] as String) "DoubleShoot"
-                                else ""
-                        )
+                        if (myChoice == null) if (player.id in selectedTargets) "Shoot" else ""
+                                                else if (player.id == meId) if (myChoice["target"] == null) myChoice["action"] as? String ?: "" else ""
+                                                else if (myChoice["target"] != null && player.id == myChoice["target"] as String) myChoice["action"] as? String ?: ""
+                                                else if (myChoice["target"] != null && "${ player.id };${ player.id }" == myChoice["target"] as String) "DoubleShoot"
+                                                else ""
+                                            )
                     }
                 }
 
@@ -188,10 +188,10 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                             color = MaterialTheme.colorScheme.secondary
                         )
                         Spacer(modifier = Modifier.height(10.dp))
-                        val otherPlayers = players.filter { it.name != me }
+                        val otherPlayers = players.filter { it.id != meId }
                         if (otherPlayers.isNotEmpty()) {
                             otherPlayers.forEach { p ->
-                                val chosen = choices.containsKey(p.name)
+                                val chosen = choices.containsKey(p.id)
                                 val stateText = when {
                                     p.lives <= 0 -> "Éliminé"
                                     chosen -> "A choisi"
@@ -214,22 +214,22 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
 @Composable
 fun GameScreenPreview() {
     val players = listOf(
-        PlayerState(name = "Pako", lives = 3, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
-        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
-        PlayerState(name = "Bob", lives = 1, bullets = 0, protectedLastTurn = false, usedDoubleShoot = true, usedSuperProtection = false, usedBomb = false, usedBlock = false),
-        PlayerState(name = "Eve", lives = 4, bullets = 3, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = true, usedBomb = false, usedBlock = false),
-        PlayerState(name = "Steve", lives = 3, bullets = 5, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = true, usedBomb = false, usedBlock = false)
+        PlayerState(id = "p1", name = "Pako", lives = 3, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(id = "p2", name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(id = "p3", name = "Bob", lives = 1, bullets = 0, protectedLastTurn = false, usedDoubleShoot = true, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        PlayerState(id = "p4", name = "Eve", lives = 4, bullets = 3, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = true, usedBomb = false, usedBlock = false),
+        PlayerState(id = "p5", name = "Steve", lives = 3, bullets = 5, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = true, usedBomb = false, usedBlock = false)
     )
 
     val choices: Map<String, Map<String, Any>> = mapOf(
-        "Pako" to mapOf("action" to "Protect"),
-        "Alice" to mapOf("action" to "Protect"),
-        "Bob" to mapOf("action" to "DoubleShoot", "target" to "Alice;Eve")
+        "p1" to mapOf("action" to "Protect"),
+        "p2" to mapOf("action" to "Protect"),
+        "p3" to mapOf("action" to "DoubleShoot", "target" to "p2;p4")
     )
 
     // Force light theme + disable dynamic colors so preview background is white
     ShiFuMiPlusTheme(darkTheme = false, dynamicColor = false) {
-        GameScreen(players = players, me = "Pako", choices = choices) { _, _ -> }
+        GameScreen(players = players, meId = "p1", choices = choices) { _, _ -> }
     }
 }
 
