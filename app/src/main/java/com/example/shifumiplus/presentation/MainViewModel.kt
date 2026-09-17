@@ -161,7 +161,7 @@ class MainViewModel : ViewModel() {
         scope.launch {
             val ok = FirestoreRepository.startGame(id)
             if (ok) {
-                // listener will initialize playersState
+                println("Could not start game")
             }
         }
     }
@@ -179,7 +179,7 @@ class MainViewModel : ViewModel() {
 
     private fun isGameFinished(players: List<PlayerState>): Boolean {
         val alive = players.filter { it.lives > 0 }
-        return alive.size <= 1 || alive.isEmpty()
+        return alive.size <= 1
     }
 
     private fun computeFinalRanking(players: List<PlayerState>): List<String> {
@@ -307,7 +307,7 @@ class MainViewModel : ViewModel() {
             }
 
             // Apply normal hits (excluding those already handled by superProtected)
-            hits.forEach { (shooter, target) ->
+            hits.forEach { (_, target) ->
                 val tgt = stateByName[target]
                 if (tgt != null) {
                     // if target is superProtected or protectedThisTurn, they don't lose life

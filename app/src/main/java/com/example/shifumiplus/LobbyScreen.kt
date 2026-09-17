@@ -40,8 +40,7 @@ fun LobbyScreen(
     gameId: String,
     players: List<PlayerState>,
     playerWins: Map<String, Int>,
-    onStart: () -> Unit,
-    onBack: () -> Unit
+    onStart: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -87,7 +86,7 @@ fun LobbyScreen(
                 ) {
                     items(players) { p ->
                         val wins = playerWins[p.name] ?: 0
-                        val winsLabel = if (wins == 1) "1 victoire" else "${wins} victoires"
+                        val winsLabel = if (wins == 1) "1 victoire" else "$wins victoires"
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -141,8 +140,7 @@ fun LobbyScreenPreview() {
                 gameId = "AR67QX",
                 players = players,
                 playerWins = mapOf("Pako" to 2, "Alice" to 1),
-                onStart = {},
-                onBack = {}
+                onStart = {}
             )
         }
     }

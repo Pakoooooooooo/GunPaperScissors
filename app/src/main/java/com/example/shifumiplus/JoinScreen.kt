@@ -26,7 +26,7 @@ import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable
-fun JoinScreen(onJoin: (String) -> Unit, onBack: () -> Unit) {
+fun JoinScreen(onJoin: (String) -> Unit) {
     var id by remember { mutableStateOf("") }
     Box(
         modifier = Modifier
@@ -76,7 +76,7 @@ fun JoinScreen(onJoin: (String) -> Unit, onBack: () -> Unit) {
 @Composable
 fun JoinScreenPreview() {
     ShiFuMiPlusTheme(darkTheme = false, dynamicColor = false) {
-        JoinScreen(onJoin = {}, onBack = {})
+        JoinScreen(onJoin = {})
     }
 }
 

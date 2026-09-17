@@ -48,15 +48,14 @@ fun AppRoot(
                 MainMenuScreen(onNewGame = onCreateGame, onJoin = onNavigateToJoin)
             }
             is MainViewModel.Screen.Join -> {
-                JoinScreen(onJoin = onJoinRequest, onBack = onNavigateToMain)
+                JoinScreen(onJoin = onJoinRequest)
             }
             is MainViewModel.Screen.Lobby -> {
                 LobbyScreen(
                     gameId = uiState.currentGameId ?: "",
                     players = uiState.currentPlayers,
                     playerWins = playerWins,
-                    onStart = onStartGame,
-                    onBack = onLeaveGame
+                    onStart = onStartGame
                 )
             }
             is MainViewModel.Screen.Game -> {
