@@ -1,5 +1,6 @@
 package com.example.shifumiplus.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -64,10 +67,16 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
 
                 alivePlayers.forEachIndexed { j, player ->
                     val relativeIndex = (j - meIndex + count) % count
-                    val angle = (2 * Math.PI * relativeIndex / count) + Math.PI / 2
-                    val radius = 130
+                    val angle = ((2 * Math.PI * relativeIndex / count) + Math.PI / 2) % (2 * Math.PI)
+                    val radius = 140
+                    val shieldRadius = 70
                     val x = (radius * cos(angle)).toFloat()
                     val y = (radius * sin(angle)).toFloat()
+                    val shieldX = (shieldRadius * cos(angle)).toFloat()
+                    val shieldY = (shieldRadius * sin(angle)).toFloat()
+                    val showShield = false
+                    val showSuperShield = false
+                    val showBullet: List<Int> = listOf(1)
 
                     PlayerView(
                         player = player,
@@ -107,6 +116,43 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                 else "",
                         isMe = player.name == me
                         )
+
+                    if (showShield) Image(
+                        painter = painterResource(id = R.drawable.topsideshield),
+                        contentDescription = "Description de l'image",
+                        modifier = Modifier
+                            .height(if (players.size <= 7) 20.dp else 15.dp)
+                            .offset(shieldX.dp, shieldY.dp)
+                            .align(Alignment.Center)
+                            .rotate((angle * 180 / Math.PI).toFloat() - 90f),
+                    ) else if (showSuperShield) Image(
+                        painter = painterResource(id = R.drawable.topsidesupershield),
+                        contentDescription = "Description de l'image",
+                        modifier = Modifier
+                            .height(if (players.size <= 7) 20.dp else 15.dp)
+                            .offset(shieldX.dp, shieldY.dp)
+                            .align(Alignment.Center)
+                            .rotate((angle * 180 / Math.PI).toFloat() - 90f),
+                    ) else if (showBullet.isNotEmpty()) {
+                        showBullet.forEach { it ->
+                            val bulletRadius = 70
+                            if (it != relativeIndex) {
+                                val angle2 = (2 * Math.PI * it / count) + Math.PI / 2
+                                val alpha = if (angle<Math.PI) (2*Math.PI + angle2 + angle)/2 else (angle2 + angle)/2
+                                val bulletX = x + bulletRadius * sin(alpha)
+                                val bulletY = y - bulletRadius * cos(alpha)
+                                Image(
+                                    painter = painterResource(id = R.drawable.bullet),
+                                    contentDescription = "Description de l'image",
+                                    modifier = Modifier
+                                        .height(if (players.size <= 7) 20.dp else 15.dp)
+                                        .offset(bulletX.dp, bulletY.dp)
+                                        .align(Alignment.Center)
+                                        .rotate((alpha*180/Math.PI).toFloat()),
+                                )
+                            }
+                        }
+                    }
                     }
                 }
 
@@ -215,7 +261,7 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
                                 modifier =
                                     if (otherPlayers.size < 3) Modifier
                                         .fillMaxWidth()
-                                        .height((60*otherPlayers.size).dp)
+                                        .height((60 * otherPlayers.size).dp)
                                     else Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight()
@@ -314,9 +360,9 @@ fun GameScreen(players: List<PlayerState>, me: String?, choices: Map<String, Map
 fun GameScreenPreview() {
     val players = listOf(
         PlayerState(name = "Pako", lives = 2, bullets = 2, protectedLastTurn = false, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
-        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
-        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
-        PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        //PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        //PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
+        //PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Alice", lives = 2, bullets = 1, protectedLastTurn = true, usedDoubleShoot = false, usedSuperProtection = false, usedBomb = false, usedBlock = false),
         PlayerState(name = "Bob", lives = 1, bullets = 0, protectedLastTurn = false, usedDoubleShoot = true, usedSuperProtection = false, usedBomb = false, usedBlock = false),

@@ -33,18 +33,19 @@ fun PlayerView(player: PlayerState, modifier: Modifier = Modifier, ppsize: Int, 
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
+            ItemList(player.lives, "heart", 10.dp)
+            Spacer(modifier = Modifier.height(3.dp))
             PlayerPP(
                 Modifier.size(ppsize.dp),
                 if (player.protectedLastTurn && !isMe) "BrokenShield" else action
             )
             Text(
                 player.name,
-                fontSize = (ppsize/4 + 2).sp,
+                Modifier.height(20.dp),
+                fontSize = (ppsize/4).sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary
             )
-            ItemList(player.lives, "heart", 10.dp)
-            Spacer(modifier = Modifier.height(3.dp))
             ItemList(player.bullets, "bullet", 12.dp)
         }
     }
