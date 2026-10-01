@@ -85,7 +85,7 @@ fun LobbyScreen(
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     items(players) { p ->
-                        val wins = playerWins[p.name] ?: 0
+                        val wins = playerWins[p.id] ?: 0
                         val winsLabel = if (wins == 1) "1 victoire" else "$wins victoires"
                         Box(
                             modifier = Modifier

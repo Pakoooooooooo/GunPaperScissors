@@ -83,7 +83,8 @@ class MainViewModel : ViewModel() {
             val activePlayers = players.filter { it.lives > 0 }
             val activeChoices = choices.filterKeys { key -> activePlayers.any { it.id == key } }
 
-            val ranking = computeFinalRanking(players)
+            val rankingIds = computeFinalRanking(players)
+            val ranking = rankingIds.map { id -> players.find { it.id == id }?.name ?: id }
             val gameEnded = started && isGameFinished(players)
             val screen = when {
                 gameEnded -> Screen.FinalRanking(gameId, ranking)
@@ -191,10 +192,10 @@ class MainViewModel : ViewModel() {
     }
 
     private fun computeFinalRanking(players: List<PlayerState>): List<String> {
-        val survivors = players.filter { it.lives > 0 }.map { it.name }
+            val survivors = players.filter { it.lives > 0 }.map { it.id }
         val eliminated = players.filter { it.lives <= 0 }
-            .sortedWith(compareByDescending<PlayerState> { it.eliminatedAtTurn ?: 0L }.thenBy { it.name })
-            .map { it.name }
+                .sortedWith(compareByDescending<PlayerState> { it.eliminatedAtTurn ?: 0L }.thenBy { it.id })
+                .map { it.id }
         return survivors + eliminated
     }
 
@@ -342,7 +343,7 @@ class MainViewModel : ViewModel() {
 
             // Update protectedLastTurn flags: those who used Protect this turn (even if canceled earlier by block and we marked) should have protectedLastTurn=true; others false
             val finalPlayersState = stateById.values.map { ps ->
-                val protectedLast = protectedThisTurn.contains(ps.name)
+                            val protectedLast = protectedThisTurn.contains(ps.id)
                 val eliminatedAt = when {
                     ps.lives > 0 -> null
                     ps.eliminatedAtTurn != null -> ps.eliminatedAtTurn

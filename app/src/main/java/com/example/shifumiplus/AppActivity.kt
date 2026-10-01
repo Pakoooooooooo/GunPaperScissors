@@ -29,8 +29,13 @@ class AppActivity : ComponentActivity() {
 
         val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
         val savedName = prefs.getString("player_name", null)
+        var savedId = prefs.getString("player_id", null)
         if (!savedName.isNullOrBlank()) {
-            viewModel.setPlayerName(savedName)
+            if (savedId.isNullOrBlank()) {
+                savedId = java.util.UUID.randomUUID().toString().replace("-", "").uppercase().take(8)
+                prefs.edit { putString("player_id", savedId) }
+            }
+            viewModel.setPlayer(savedName, savedId!!)
             viewModel.navigateTo(MainViewModel.Screen.MainMenu)
         }
 
@@ -45,8 +50,9 @@ class AppActivity : ComponentActivity() {
                     uiState = state,
                     playerWins = playerWins,
                     onNameConfirm = { name ->
-                        prefs.edit { putString("player_name", name) }
-                        viewModel.setPlayerName(name)
+                        val id = prefs.getString("player_id", null) ?: java.util.UUID.randomUUID().toString().replace("-", "").uppercase().take(8)
+                        prefs.edit { putString("player_name", name); putString("player_id", id) }
+                        viewModel.setPlayer(name, id)
                         viewModel.navigateTo(MainViewModel.Screen.MainMenu)
                     },
                     onCreateGame = { viewModel.createGame() },
