@@ -34,6 +34,8 @@ fun AppRoot(
             is MainViewModel.Screen.Name -> onExitRequested()
             is MainViewModel.Screen.MainMenu -> onExitRequested()
             is MainViewModel.Screen.Join -> onNavigateToMain()
+            is MainViewModel.Screen.GameCreateLoading -> onNavigateToMain()
+            is MainViewModel.Screen.GameJoinLoading -> onNavigateToMain()
             is MainViewModel.Screen.Lobby -> onLeaveGame()
             is MainViewModel.Screen.Game -> onNavigateToMain()
             is MainViewModel.Screen.FinalRanking -> onNavigateToMain()
@@ -50,6 +52,12 @@ fun AppRoot(
             }
             is MainViewModel.Screen.Join -> {
                 JoinScreen(onJoin = onJoinRequest)
+            }
+            is MainViewModel.Screen.GameCreateLoading -> {
+                LoadingScreen(text = "Creating game...")
+            }
+            is MainViewModel.Screen.GameJoinLoading -> {
+                LoadingScreen(text = "Joining game...")
             }
             is MainViewModel.Screen.Lobby -> {
                 LobbyScreen(

@@ -17,6 +17,8 @@ class MainViewModel : ViewModel() {
         object Name : Screen()
         object MainMenu : Screen()
         object Join : Screen()
+        object GameCreateLoading : Screen()
+        object GameJoinLoading : Screen()
         data class Lobby(val gameId: String) : Screen()
         data class Game(val gameId: String) : Screen()
         data class FinalRanking(val gameId: String, val ranking: List<String>) : Screen()
@@ -112,9 +114,16 @@ class MainViewModel : ViewModel() {
     fun createGame() {
         val name = _uiState.value.playerName ?: return
         val myId = _uiState.value.playerId ?: return
+        // show loading screen while backend creates the game and listener attaches
+        _uiState.value = _uiState.value.copy(screen = Screen.GameCreateLoading)
         scope.launch {
             val id = FirestoreRepository.createGame(myId, name)
-            attachListener(id)
+            if (!id.isNullOrBlank()) {
+                attachListener(id)
+            } else {
+                // fallback to main menu on failure
+                _uiState.value = _uiState.value.copy(screen = Screen.MainMenu)
+            }
         }
     }
 
@@ -122,9 +131,16 @@ class MainViewModel : ViewModel() {
         val id = idRaw.trim()
         val name = _uiState.value.playerName ?: return
         val myId = _uiState.value.playerId ?: return
+        // show loading while attempting to join
+        _uiState.value = _uiState.value.copy(screen = Screen.GameJoinLoading)
         scope.launch {
             val success = FirestoreRepository.joinGame(id, myId, name)
-            if (success) attachListener(id)
+            if (success) {
+                attachListener(id)
+            } else {
+                // return to Join screen on failure
+                _uiState.value = _uiState.value.copy(screen = Screen.Join)
+            }
         }
     }
 
