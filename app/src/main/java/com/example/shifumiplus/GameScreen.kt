@@ -35,9 +35,20 @@ import com.example.shifumiplus.ui.theme.LiteGrey
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import androidx.compose.ui.zIndex
 
 @Composable
-fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
+fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit, onAnimationCompleted: () -> Unit = {}) {
     val alivePlayers = players.filter { it.lives > 0 }
     val myState = players.find { it.id == meId }
     val isEliminated = (myState?.lives ?: 1) <= 0
@@ -45,6 +56,14 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
     var targetMode by remember { mutableStateOf<String?>(null) }
     val selectedTargets = remember { mutableStateListOf<String>() }
 
+    // global animation state for this screen so it's accessible from all inner scopes
+    val isAnimating = remember { mutableStateOf(false) }
+    val animMap = remember { androidx.compose.runtime.mutableStateMapOf<String, Animatable<Float, AnimationVector1D>>() }
+    val angleMap = remember { androidx.compose.runtime.mutableStateMapOf<String, Double>() }
+    // state-backed distances so Compose recomposes each frame while bullets animate
+    val bulletState = remember { androidx.compose.runtime.mutableStateMapOf<String, Float>() }
+    val animScope = rememberCoroutineScope()
+    
     Surface(
         modifier = Modifier
             .fillMaxSize()
@@ -65,18 +84,168 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                 val meIndex =
                     alivePlayers.indexOfFirst { it.id == meId }.let { if (it == -1) 0 else it }
 
+                // Build list of bullets to display from current choices: pairs of (shooterIndex, targetIndex)
+                val radius = 140
+                val shieldRadius = 70
+                val bulletsPairs = remember(alivePlayers, choices, meIndex) {
+                    val list = mutableListOf<Pair<Int, Int>>()
+                    alivePlayers.forEachIndexed { j, p ->
+                        val relShooter = (j - meIndex + count) % count
+                        val c = choices[p.id]
+                        val action = c?.get("action") as? String
+                        val targetRaw = c?.get("target") as? String
+                        if (action != null && targetRaw != null) {
+                            when (action) {
+                                "Shoot" -> {
+                                    val targetId = targetRaw.trim()
+                                    val tIndex = alivePlayers.indexOfFirst { it.id == targetId }
+                                    if (tIndex != -1) {
+                                        val relTarget = (tIndex - meIndex + count) % count
+                                        if (relShooter != relTarget) list.add(relShooter to relTarget)
+                                    }
+                                }
+                                "DoubleShoot" -> {
+                                    val parts = targetRaw.split(";").map { it.trim() }
+                                    parts.forEach { tid ->
+                                        val tIndex = alivePlayers.indexOfFirst { it.id == tid }
+                                        if (tIndex != -1) {
+                                            val relTarget = (tIndex - meIndex + count) % count
+                                            val rel = relShooter
+                                            if (rel != relTarget) list.add(rel to relTarget)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    list
+                }
+
+                // animation state for bullets (moved to top-level of composable)
+                val scope = animScope
+
+                // detect whether all alive players have chosen
+                val activeChoicesCount = alivePlayers.count { choices.containsKey(it.id) }
+                val allChosen = alivePlayers.isNotEmpty() && activeChoicesCount == alivePlayers.size
+
+                // Start animation only when everyone has chosen
+                LaunchedEffect(allChosen) {
+                    if (allChosen && bulletsPairs.isNotEmpty() && !isAnimating.value) {
+                        // capture snapshot immediately and run animation in separate scope
+                        val snapshot = bulletsPairs.toList()
+                        if (snapshot.isEmpty()) return@LaunchedEffect
+                        if (isAnimating.value) return@LaunchedEffect
+                        // launch independent coroutine so it's not cancelled by recomposition
+                        scope.launch {
+
+                            // short stabilization delay to avoid races when backend clears choices immediately
+                            kotlinx.coroutines.delay(150)
+                            // re-check that the snapshot and allChosen are still valid
+                            if (!allChosen) return@launch
+                            if (bulletsPairs.toList() != snapshot) return@launch
+                            if (isAnimating.value) return@launch
+
+                            isAnimating.value = true
+                            animMap.clear()
+                            angleMap.clear()
+
+                        try {
+                            // create bullet ids and anims
+                            val bulletIds = snapshot.mapIndexed { idx, pair -> "${pair.first}:${pair.second}" }
+                            snapshot.forEachIndexed { idx, pair ->
+                                val (shooterRel, targetRel) = pair
+                                val shooterAngle = ((2 * Math.PI * shooterRel / count) + Math.PI / 2) % (2 * Math.PI)
+                                val targetAngle = ((2 * Math.PI * targetRel / count) + Math.PI / 2) % (2 * Math.PI)
+                                val sx = (radius * cos(shooterAngle)).toFloat()
+                                val sy = (radius * sin(shooterAngle)).toFloat()
+                                val tx = (radius * cos(targetAngle)).toFloat()
+                                val ty = (radius * sin(targetAngle)).toFloat()
+                                val dx = tx - sx
+                                val dy = ty - sy
+                                // store angle from shooter to target
+                                val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
+                                val id = bulletIds[idx]
+                                angleMap[id] = bulletAngle
+                                val anim = Animatable(0f)
+                                animMap[id] = anim
+                            }
+
+                            // animate all and wait for completion (use LaunchedEffect's coroutine scope)
+                            // animate bullets sequentially so each bullet travels ~500ms
+                            val perBulletMs = 500L
+                            val betweenMs = 50L
+                            for ((idx, pair) in snapshot.withIndex()) {
+                                val id = bulletIds[idx]
+                                val (shooterRel, targetRel) = pair
+                                val shooterAngle = ((2 * Math.PI * shooterRel / count) + Math.PI / 2) % (2 * Math.PI)
+                                val targetAngle = ((2 * Math.PI * targetRel / count) + Math.PI / 2) % (2 * Math.PI)
+                                val sx = (radius * cos(shooterAngle)).toFloat()
+                                val sy = (radius * sin(shooterAngle)).toFloat()
+                                val tx = (radius * cos(targetAngle)).toFloat()
+                                val ty = (radius * sin(targetAngle)).toFloat()
+                                val dx = tx - sx
+                                val dy = ty - sy
+                                val dist = sqrt(dx * dx + dy * dy)
+
+                                println("??? dist = ${dist} for bullet ${id} (idx=${idx})")
+                                println("??? animation starts for bullet ${id} (idx=${idx})")
+
+                                // initialize state-backed distance
+                                bulletState[id] = 0f
+
+                                // deterministic frame loop to ensure Compose recomposes and shows movement
+                                val startTs = System.currentTimeMillis()
+                                var elapsed: Long
+                                do {
+                                    elapsed = System.currentTimeMillis() - startTs
+                                    val frac = (elapsed.toFloat() / perBulletMs.toFloat()).coerceIn(0f, 1f)
+                                    val cur = frac * dist
+                                    bulletState[id] = cur
+                                    // also keep animMap for compatibility (not relied upon for rendering)
+                                    animMap[id]?.snapTo(cur)
+                                    kotlinx.coroutines.delay(16)
+                                } while (elapsed < perBulletMs)
+
+                                // ensure final position
+                                bulletState[id] = dist
+                                animMap[id]?.snapTo(dist)
+
+                                val endTs = System.currentTimeMillis()
+                                val took = endTs - startTs
+                                println("??? animation ends for bullet ${id} (elapsed=${took} ms)")
+                                kotlinx.coroutines.delay(betweenMs)
+                            }
+
+                            // small pause so end state is visible for a moment
+                            kotlinx.coroutines.delay(350)
+
+                        } finally {
+                            // end animation phase (always run cleanup)
+                            isAnimating.value = false
+                            println("??? all animations joined, calling onAnimationCompleted()")
+                            animMap.clear()
+                            angleMap.clear()
+                            // notify viewmodel/UI that animation completed so choices may be re-enabled
+                            try {
+                                onAnimationCompleted()
+                            } catch (e: Exception) {
+                                println("!!! onAnimationCompleted threw: ${e}")
+                            }
+                        }
+
+                    }
+                }
+
+                }
                 alivePlayers.forEachIndexed { j, player ->
                     val relativeIndex = (j - meIndex + count) % count
                     val angle = ((2 * Math.PI * relativeIndex / count) + Math.PI / 2) % (2 * Math.PI)
-                    val radius = 140
-                    val shieldRadius = 70
                     val x = (radius * cos(angle)).toFloat()
                     val y = (radius * sin(angle)).toFloat()
                     val shieldX = (shieldRadius * cos(angle)).toFloat()
                     val shieldY = (shieldRadius * sin(angle)).toFloat()
                     val showShield = false
                     val showSuperShield = false
-                    val showBullet: List<Int> = listOf(1, 2)
 
                     PlayerView(
                         player = player,
@@ -133,34 +302,37 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                             .offset(shieldX.dp, shieldY.dp)
                             .align(Alignment.Center)
                             .rotate((angle * 180 / Math.PI).toFloat() - 90f),
-                    ) else if (showBullet.isNotEmpty()) {
-                        showBullet.forEach { it ->
-                            val bulletRadius = 70
-                            if (it != relativeIndex) {
-                                val angle2 = ((2 * Math.PI * it / count) + Math.PI / 2) % (2 * Math.PI)
-                                // compute actual positions of shooter (x,y) and target (tx,ty) on same basis
-                                val tx = (radius * cos(angle2)).toFloat()
-                                val ty = (radius * sin(angle2)).toFloat()
-                                // direction vector from shooter to target
-                                val dx = tx - x
-                                val dy = ty - y
-                                // angle toward target (atan2 uses y then x)
-                                val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
-                                val bulletX = x + (bulletRadius * kotlin.math.cos(bulletAngle)).toFloat()
-                                val bulletY = y + (bulletRadius * kotlin.math.sin(bulletAngle)).toFloat()
-
-                                // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
-                                val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
-
-                                Image(
-                                    painter = painterResource(id = R.drawable.bullet),
-                                    contentDescription = "Description de l'image",
-                                    modifier = Modifier
-                                        .height(if (players.size <= 7) 20.dp else 15.dp)
-                                        .offset(bulletX.dp, bulletY.dp)
-                                        .align(Alignment.Center)
-                                        .rotate(rotationDeg + 90f),
-                                )
+                    ) else {
+                        // draw bullets originating from this player while animating (or statically if no anim)
+                        bulletsPairs.forEachIndexed { bidx, pair ->
+                            val (shooterRel) = pair
+                            println("??? shooterRel == relativeIndex : ${shooterRel == relativeIndex}")
+                            if (shooterRel == relativeIndex) {
+                                val id = "${'$'}{pair.first}:${'$'}{pair.second}"
+                                println("??? angleMap = ${angleMap.size}")
+                                println("??? animMap = ${animMap.size}")
+                                val bulletAngle = angleMap[id]
+                                println("??? bullet ${id} angle=${bulletAngle} rad")
+                                val curDist = bulletState[id] ?: 0f
+                                println("??? bullet ${id} curDist=${curDist}")
+                                if (bulletAngle != null) {
+                                    val bulletX = x + (curDist * cos(bulletAngle)).toFloat()
+                                    val bulletY = y + (curDist * sin(bulletAngle)).toFloat()
+                                    println("??? drawing bullet ${id} at (${bulletX}, ${bulletY}) with angle ${bulletAngle} rad")
+                                    val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
+                                    // bullet image (visible, sized, and placed above other UI)
+                                    Image(
+                                        painter = painterResource(id = R.drawable.bullet),
+                                        contentDescription = "bullet",
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                                        modifier = Modifier
+                                            .size(if (players.size <= 7) 20.dp else 15.dp)
+                                            .offset(bulletX.dp, bulletY.dp)
+                                            .align(Alignment.Center)
+                                            .zIndex(1f)
+                                            .rotate(rotationDeg + 90f)
+                                    )
+                                }
                             }
                         }
                     }
@@ -188,7 +360,16 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                             color = MaterialTheme.colorScheme.secondary
                         )
                         Spacer(modifier = Modifier.height(10.dp))
-                        if (targetMode == null) {
+                        if (isAnimating.value) {
+                            Text(
+                                "Animation en cours...",
+                                color = MaterialTheme.colorScheme.secondary,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else if (targetMode == null) {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.SpaceEvenly
@@ -390,6 +571,6 @@ fun GameScreenPreview() {
 
     // Force light theme + disable dynamic colors so preview background is white
     ShiFuMiPlusTheme(darkTheme = false, dynamicColor = false) {
-        GameScreen(players = players, meId = "p1", choices = choices) { _, _ -> }
+        GameScreen(players = players, meId = "p1", choices = choices, onSubmit = { _, _ -> })
     }
 }

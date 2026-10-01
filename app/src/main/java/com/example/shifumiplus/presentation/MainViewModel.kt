@@ -202,6 +202,17 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Called by the UI when the local animation phase finished. This clears local choices so
+     * players can pick again while waiting for the backend-resolved state to arrive.
+     * The backend resolver will overwrite choices when it writes the next turn; this is purely
+     * a local UI convenience to re-enable buttons.
+     */
+    fun onAnimationCompleted() {
+        println("Animation completed, clearing local choices")
+        _uiState.value = _uiState.value.copy(choices = emptyMap())
+    }
+
     private fun isGameFinished(players: List<PlayerState>): Boolean {
         val alive = players.filter { it.lives > 0 }
         return alive.size <= 1

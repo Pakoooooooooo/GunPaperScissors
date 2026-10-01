@@ -25,6 +25,7 @@ fun AppRoot(
     onNavigateToJoin: () -> Unit,
     onNavigateToMain: () -> Unit,
     onSubmitAction: (String, String?) -> Unit,
+    onAnimationCompleted: () -> Unit,
     onExitRequested: () -> Unit,
     onLeaveGame: () -> Unit,
     onFinishGame: () -> Unit
@@ -68,7 +69,7 @@ fun AppRoot(
                 )
             }
             is MainViewModel.Screen.Game -> {
-                GameScreen(players = uiState.currentPlayers, meId = uiState.playerId, choices = uiState.choices, onSubmit = onSubmitAction)
+                GameScreen(players = uiState.currentPlayers, meId = uiState.playerId, choices = uiState.choices, onSubmit = onSubmitAction, onAnimationCompleted = onAnimationCompleted)
             }
             is MainViewModel.Screen.FinalRanking -> {
                 FinalRankingScreen(ranking = uiState.finalRanking, onFinish = onFinishGame)

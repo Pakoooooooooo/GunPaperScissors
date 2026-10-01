@@ -61,6 +61,7 @@ class AppActivity : ComponentActivity() {
                     onNavigateToJoin = { viewModel.navigateTo(MainViewModel.Screen.Join) },
                     onNavigateToMain = { viewModel.navigateTo(MainViewModel.Screen.MainMenu) },
                     onSubmitAction = { action, target -> viewModel.submitAction(action, target) },
+                    onAnimationCompleted = { viewModel.onAnimationCompleted() },
                     onExitRequested = { finish() },
                     onLeaveGame = { viewModel.leaveGame() },
                     onFinishGame = {
