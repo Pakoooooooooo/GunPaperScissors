@@ -76,7 +76,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                     val shieldY = (shieldRadius * sin(angle)).toFloat()
                     val showShield = false
                     val showSuperShield = false
-                    val showBullet: List<Int> = listOf(1)
+                    val showBullet: List<Int> = listOf(1, 2)
 
                     PlayerView(
                         player = player,
@@ -137,10 +137,21 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                         showBullet.forEach { it ->
                             val bulletRadius = 70
                             if (it != relativeIndex) {
-                                val angle2 = (2 * Math.PI * it / count) + Math.PI / 2
-                                val alpha = if (angle<Math.PI) (2*Math.PI + angle2 + angle)/2 else (angle2 + angle)/2
-                                val bulletX = x + bulletRadius * sin(alpha)
-                                val bulletY = y - bulletRadius * cos(alpha)
+                                val angle2 = ((2 * Math.PI * it / count) + Math.PI / 2) % (2 * Math.PI)
+                                // compute actual positions of shooter (x,y) and target (tx,ty) on same basis
+                                val tx = (radius * cos(angle2)).toFloat()
+                                val ty = (radius * sin(angle2)).toFloat()
+                                // direction vector from shooter to target
+                                val dx = tx - x
+                                val dy = ty - y
+                                // angle toward target (atan2 uses y then x)
+                                val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
+                                val bulletX = x + (bulletRadius * kotlin.math.cos(bulletAngle)).toFloat()
+                                val bulletY = y + (bulletRadius * kotlin.math.sin(bulletAngle)).toFloat()
+
+                                // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
+                                val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
+
                                 Image(
                                     painter = painterResource(id = R.drawable.bullet),
                                     contentDescription = "Description de l'image",
@@ -148,7 +159,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                                         .height(if (players.size <= 7) 20.dp else 15.dp)
                                         .offset(bulletX.dp, bulletY.dp)
                                         .align(Alignment.Center)
-                                        .rotate((alpha*180/Math.PI).toFloat()),
+                                        .rotate(rotationDeg + 90f),
                                 )
                             }
                         }
