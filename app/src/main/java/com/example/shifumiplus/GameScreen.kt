@@ -1,5 +1,8 @@
 package com.example.shifumiplus.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -33,6 +36,7 @@ import com.example.shifumiplus.ui.theme.Bronson
 import com.example.shifumiplus.ui.theme.DarkGrey
 import com.example.shifumiplus.ui.theme.LiteGrey
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -44,6 +48,12 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
     val myChoice = choices[meId]
     var targetMode by remember { mutableStateOf<String?>(null) }
     val selectedTargets = remember { mutableStateListOf<String>() }
+    val bulletRadius = 10f
+    val bulletRelativePos = remember { Animatable(0f) }
+    var isAnimating by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val showBullet: List<Pair<Int, Int>> = listOf(1 to 2, 1 to 0)
+    var curShotPair by remember { mutableStateOf(0 to 0) }
 
     Surface(
         modifier = Modifier
@@ -56,6 +66,22 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Button(onClick = {
+                scope.launch {
+                    isAnimating = true
+                    showBullet.forEach { pair ->
+                        curShotPair = pair
+                        bulletRelativePos.animateTo(
+                            targetValue = 100f,
+                            animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                        )
+                        bulletRelativePos.snapTo(0f)
+                    }
+                    isAnimating = false
+                }
+            }) {
+                Text("Déplacer")
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,7 +102,6 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                     val shieldY = (shieldRadius * sin(angle)).toFloat()
                     val showShield = false
                     val showSuperShield = false
-                    val showBullet: List<Int> = listOf(1, 2)
 
                     PlayerView(
                         player = player,
@@ -133,37 +158,39 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                             .offset(shieldX.dp, shieldY.dp)
                             .align(Alignment.Center)
                             .rotate((angle * 180 / Math.PI).toFloat() - 90f),
-                    ) else if (showBullet.isNotEmpty()) {
-                        showBullet.forEach { it ->
-                            val bulletRadius = 70
-                            if (it != relativeIndex) {
-                                val angle2 = ((2 * Math.PI * it / count) + Math.PI / 2) % (2 * Math.PI)
-                                // compute actual positions of shooter (x,y) and target (tx,ty) on same basis
-                                val tx = (radius * cos(angle2)).toFloat()
-                                val ty = (radius * sin(angle2)).toFloat()
-                                // direction vector from shooter to target
-                                val dx = tx - x
-                                val dy = ty - y
-                                // angle toward target (atan2 uses y then x)
-                                val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
-                                val bulletX = x + (bulletRadius * kotlin.math.cos(bulletAngle)).toFloat()
-                                val bulletY = y + (bulletRadius * kotlin.math.sin(bulletAngle)).toFloat()
+                    ) else if (isAnimating) {
+                            if (curShotPair.first == j) {
+                                    val it = curShotPair.second
+                                    if (it != relativeIndex) {
+                                        val angle2 = ((2 * Math.PI * it / count) + Math.PI / 2) % (2 * Math.PI)
+                                        // compute actual positions of shooter (x,y) and target (tx,ty) on same basis
+                                        val x2 = (radius * cos(angle2)).toFloat()
+                                        val y2 = (radius * sin(angle2)).toFloat()
+                                        // direction vector from shooter to target
+                                        val dx = x2 - x
+                                        val dy = y2 - y
+                                        val dist = kotlin.math.sqrt(dx * dx + dy * dy) - bulletRadius
+                                        // angle toward target (atan2 uses y then x)
+                                        val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
+                                        val bulletPos = bulletRadius + (bulletRelativePos.value / 100f) * dist
+                                        val bulletX = x + (bulletPos * cos(bulletAngle)).toFloat()
+                                        val bulletY = y + (bulletPos * sin(bulletAngle)).toFloat()
 
-                                // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
-                                val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
+                                        // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
+                                        val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
 
-                                Image(
-                                    painter = painterResource(id = R.drawable.bullet),
-                                    contentDescription = "Description de l'image",
-                                    modifier = Modifier
-                                        .height(if (players.size <= 7) 20.dp else 15.dp)
-                                        .offset(bulletX.dp, bulletY.dp)
-                                        .align(Alignment.Center)
-                                        .rotate(rotationDeg + 90f),
-                                )
-                            }
+                                        Image(
+                                            painter = painterResource(id = R.drawable.bullet),
+                                            contentDescription = "Description de l'image",
+                                            modifier = Modifier
+                                                .height(if (players.size <= 7) 20.dp else 15.dp)
+                                                .offset(bulletX.dp, bulletY.dp)
+                                                .align(Alignment.Center)
+                                                .rotate(rotationDeg + 90f),
+                                        )
+                                    }
+                                }
                         }
-                    }
                     }
                 }
 
