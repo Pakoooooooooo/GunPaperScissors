@@ -1,5 +1,6 @@
 package com.example.shifumiplus.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -40,6 +41,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
+@SuppressLint("MutableCollectionMutableState")
 @Composable
 fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
     val alivePlayers = players.filter { it.lives > 0 }
@@ -51,9 +53,63 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
     val bulletRadius = 10f
     val bulletRelativePos = remember { Animatable(0f) }
     var isAnimating by remember { mutableStateOf(false) }
+    var isAnimatingBullet by remember { mutableStateOf(false) }
+    var isAnimatingBomb by remember { mutableStateOf(false) }
+    var isAnimatingStops by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val showBullet: List<Pair<Int, Int>> = listOf(1 to 2, 1 to 0)
     var curShotPair by remember { mutableStateOf(0 to 0) }
+    var curBombThrower by remember { mutableIntStateOf(0) }
+    var showShields by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var showSuperShields by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var showStopedPlayers by remember { mutableStateOf<List<Int>>(emptyList()) }
+
+    fun startAnimation(
+        stops: List<Pair<Int, Int>>,
+        shots: List<Pair<Int, Int>>,
+        shields: List<Int>,
+        superShields: List<Int>
+    ) {
+        scope.launch {
+            isAnimating = true
+            showShields = shields
+            showSuperShields = superShields
+            stops.forEach{ pair ->
+                isAnimatingStops = true
+                curShotPair = pair
+                bulletRelativePos.animateTo(
+                    targetValue = 100f,
+                    animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                )
+                showStopedPlayers = showStopedPlayers + pair.second
+                isAnimatingStops = false
+                bulletRelativePos.snapTo(0f)
+            }
+            shots.forEach { pair ->
+                if (pair.first == pair.second) {
+                    isAnimatingBomb = true
+                    curBombThrower = pair.first
+                    bulletRelativePos.animateTo(
+                        targetValue = 100f,
+                        animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                    )
+                    isAnimatingBomb = false
+                    bulletRelativePos.snapTo(0f)
+                } else {
+                    isAnimatingBullet = true
+                    curShotPair = pair
+                    bulletRelativePos.animateTo(
+                        targetValue = 100f,
+                        animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                    )
+                    isAnimatingBullet = false
+                    bulletRelativePos.snapTo(0f)
+                }
+
+            }
+            isAnimating = false
+            showStopedPlayers = emptyList()
+        }
+    }
 
     Surface(
         modifier = Modifier
@@ -67,18 +123,12 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Button(onClick = {
-                scope.launch {
-                    isAnimating = true
-                    showBullet.forEach { pair ->
-                        curShotPair = pair
-                        bulletRelativePos.animateTo(
-                            targetValue = 100f,
-                            animationSpec = tween(durationMillis = 250, easing = LinearEasing)
-                        )
-                        bulletRelativePos.snapTo(0f)
-                    }
-                    isAnimating = false
-                }
+                startAnimation(
+                    listOf(1 to 0),
+                    listOf(0 to 1, 1 to 1),
+                    listOf(0),
+                    listOf(1)
+                )
             }) {
                 Text("Déplacer")
             }
@@ -100,8 +150,6 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                     val y = (radius * sin(angle)).toFloat()
                     val shieldX = (shieldRadius * cos(angle)).toFloat()
                     val shieldY = (shieldRadius * sin(angle)).toFloat()
-                    val showShield = false
-                    val showSuperShield = false
 
                     PlayerView(
                         player = player,
@@ -131,7 +179,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                                 } else Modifier
                             ),
                         ppsize = if (players.size <= 7) 60 else 40,
-                        if (myChoice == null) if (player.id in selectedTargets) "Shoot" else ""
+                        action = if (myChoice == null) if (player.id in selectedTargets) "Shoot" else ""
                                 else if (player.id == meId) if (myChoice["target"] == null) myChoice["action"] as? String ?: "" else ""
                                 else if (myChoice["target"] != null && player.id == myChoice["target"] as String) myChoice["action"] as? String ?: ""
                                 else if (myChoice["target"] != null && "${ player.id };${ player.name }" == myChoice["target"] as String) "DoubleShoot"
@@ -139,10 +187,11 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                                     player.name == (myChoice["target"] as String).substringBefore(";") ||
                                     player.name == (myChoice["target"] as String).substringAfter(";"))) "Shoot"
                                 else "",
+                        blocked = isAnimating && j in showStopedPlayers,
                         isMe = player.id == meId
                         )
 
-                    if (showShield) Image(
+                    if (isAnimating && j in showShields) Image(
                         painter = painterResource(id = R.drawable.topsideshield),
                         contentDescription = "Description de l'image",
                         modifier = Modifier
@@ -150,7 +199,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                             .offset(shieldX.dp, shieldY.dp)
                             .align(Alignment.Center)
                             .rotate((angle * 180 / Math.PI).toFloat() - 90f),
-                    ) else if (showSuperShield) Image(
+                    ) else if (isAnimating && j in showSuperShields) Image(
                         painter = painterResource(id = R.drawable.topsidesupershield),
                         contentDescription = "Description de l'image",
                         modifier = Modifier
@@ -158,47 +207,76 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                             .offset(shieldX.dp, shieldY.dp)
                             .align(Alignment.Center)
                             .rotate((angle * 180 / Math.PI).toFloat() - 90f),
-                    ) else if (isAnimating) {
-                            if (curShotPair.first == j) {
-                                    val it = curShotPair.second
-                                    if (it != relativeIndex) {
-                                        val angle2 = ((2 * Math.PI * it / count) + Math.PI / 2) % (2 * Math.PI)
-                                        // compute actual positions of shooter (x,y) and target (tx,ty) on same basis
-                                        val x2 = (radius * cos(angle2)).toFloat()
-                                        val y2 = (radius * sin(angle2)).toFloat()
-                                        // direction vector from shooter to target
-                                        val dx = x2 - x
-                                        val dy = y2 - y
-                                        val dist = kotlin.math.sqrt(dx * dx + dy * dy) - bulletRadius
-                                        // angle toward target (atan2 uses y then x)
-                                        val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
-                                        val bulletPos = bulletRadius + (bulletRelativePos.value / 100f) * dist
-                                        val bulletX = x + (bulletPos * cos(bulletAngle)).toFloat()
-                                        val bulletY = y + (bulletPos * sin(bulletAngle)).toFloat()
+                    )
+                    if (isAnimatingBullet || isAnimatingStops) {
+                        if (curShotPair.first == j) {
+                            val it = curShotPair.second
+                            if (it != j) {
+                                val angle2 = ((2 * Math.PI * it / count) + Math.PI / 2) % (2 * Math.PI)
+                                // compute actual positions of shooter (x,y) and target (tx,ty) on same basis
+                                val x2 = (radius * cos(angle2)).toFloat()
+                                val y2 = (radius * sin(angle2)).toFloat()
+                                // direction vector from shooter to target
+                                val dx = x2 - x
+                                val dy = y2 - y
+                                val dist = kotlin.math.sqrt(dx * dx + dy * dy) - bulletRadius
+                                // angle toward target (atan2 uses y then x)
+                                val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
+                                val bulletPos = bulletRadius + (bulletRelativePos.value / 100f) * dist
+                                val bulletX = x + (bulletPos * cos(bulletAngle)).toFloat()
+                                val bulletY = y + (bulletPos * sin(bulletAngle)).toFloat()
+                                // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
+                                val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
 
-                                        // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
-                                        val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
+                                Image(
+                                    painter = painterResource(id = when {
+                                        isAnimatingStops -> R.drawable.stop
+                                        else -> R.drawable.bullet
+                                    }),
+                                    contentDescription = "Description de l'image",
+                                    modifier = Modifier
+                                        .height(when {
+                                            isAnimatingStops -> 30.dp
+                                            else -> 20.dp
+                                        })
+                                        .offset(bulletX.dp, bulletY.dp)
+                                        .align(Alignment.Center)
+                                        .rotate(rotationDeg + 90f),
+                                    )
+                            }
+                        }
+                    } else if (isAnimatingBomb) {
+                        if (curBombThrower == j) {
+                            val dist = kotlin.math.sqrt(x * x + y * y) - bulletRadius
+                            // angle toward target (atan2 uses y then x)
+                            val bulletAngle = kotlin.math.atan2((-y).toDouble(), (-x).toDouble())
+                            val bulletPos = bulletRadius + (bulletRelativePos.value / 100f) * dist
+                            val bulletX = x + (bulletPos * cos(bulletAngle)).toFloat()
+                            val bulletY = y + (bulletPos * sin(bulletAngle)).toFloat()
+                            // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
+                            val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
 
-                                        Image(
-                                            painter = painterResource(id = R.drawable.bullet),
-                                            contentDescription = "Description de l'image",
-                                            modifier = Modifier
-                                                .height(if (players.size <= 7) 20.dp else 15.dp)
-                                                .offset(bulletX.dp, bulletY.dp)
-                                                .align(Alignment.Center)
-                                                .rotate(rotationDeg + 90f),
-                                        )
-                                    }
-                                }
+                            Image(
+                                painter = painterResource(id = R.drawable.bombe),
+                                contentDescription = "Description de l'image",
+                                modifier = Modifier
+                                    .height(30.dp)
+                                    .offset(bulletX.dp, bulletY.dp)
+                                    .align(Alignment.Center)
+                                    .rotate(rotationDeg + 90f),
+                                )
+                            }
                         }
                     }
                 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
-                ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(240.dp)
+            )
+            {
+                if (!isAnimating){
                     if (isEliminated) {
                         Text(
                             "☠",
@@ -391,6 +469,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                 }
             }
         }
+    }
 }
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 800)
@@ -410,7 +489,7 @@ fun GameScreenPreview() {
     )
 
     val choices: Map<String, Map<String, Any>> = mapOf(
-        "p1" to mapOf("action" to "Protect"),
+        //"p1" to mapOf("action" to "Protect"),
         "p2" to mapOf("action" to "Protect"),
         "p3" to mapOf("action" to "DoubleShoot", "target" to "p2;p4")
     )

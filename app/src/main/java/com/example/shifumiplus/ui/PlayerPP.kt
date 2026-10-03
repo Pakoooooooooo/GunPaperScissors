@@ -14,7 +14,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.shifumiplus.R
 
 @Composable
-fun PlayerPP(modifier: Modifier, action: String = ""){
+fun PlayerPP(
+    modifier: Modifier,
+    action: String = "",
+    blocked: Boolean = false
+    ){
     Box(modifier = modifier) {
         Image(
             painter = painterResource(id = R.drawable.face),
@@ -35,14 +39,6 @@ fun PlayerPP(modifier: Modifier, action: String = ""){
                     contentDescription = "Description de l'image",
                     modifier = Modifier.align(alignment = Alignment.Center)
                 )
-            "Block" ->
-                Image(
-                    painter = painterResource(id = R.drawable.stop),
-                    contentDescription = "Description de l'image",
-                    modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .align(alignment = Alignment.Center)
-                )
             else -> Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -60,6 +56,16 @@ fun PlayerPP(modifier: Modifier, action: String = ""){
                     modifier = Modifier.fillMaxSize(0.4f)
                 )
             }
+        }
+
+        if (blocked) {
+            Image(
+                painter = painterResource(id = R.drawable.stop),
+                contentDescription = "Description de l'image",
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .align(alignment = Alignment.Center)
+            )
         }
     }
 }
