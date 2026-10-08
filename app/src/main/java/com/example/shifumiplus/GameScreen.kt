@@ -56,14 +56,17 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
     var isAnimatingBullet by remember { mutableStateOf(false) }
     var isAnimatingBomb by remember { mutableStateOf(false) }
     var isAnimatingStops by remember { mutableStateOf(false) }
+    var isAnimatingReload by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var curShotPair by remember { mutableStateOf(0 to 0) }
     var curBombThrower by remember { mutableIntStateOf(0) }
+    var curReloader by remember { mutableIntStateOf(0) }
     var showShields by remember { mutableStateOf<List<Int>>(emptyList()) }
     var showSuperShields by remember { mutableStateOf<List<Int>>(emptyList()) }
     var showStopedPlayers by remember { mutableStateOf<List<Int>>(emptyList()) }
 
     fun startAnimation(
+        reloads: List<Int>,
         stops: List<Pair<Int, Int>>,
         shots: List<Pair<Int, Int>>,
         shields: List<Int>,
@@ -73,6 +76,16 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
             isAnimating = true
             showShields = shields
             showSuperShields = superShields
+            reloads.forEach { loader ->
+                isAnimatingReload = true
+                curReloader = loader
+                bulletRelativePos.animateTo(
+                    targetValue = 100f,
+                    animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                )
+                isAnimatingReload = false
+                bulletRelativePos.snapTo(0f)
+            }
             stops.forEach{ pair ->
                 isAnimatingStops = true
                 curShotPair = pair
@@ -124,6 +137,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
         ) {
             Button(onClick = {
                 startAnimation(
+                    listOf(0,1),
                     listOf(1 to 0),
                     listOf(0 to 1, 1 to 1),
                     listOf(0),
@@ -265,6 +279,20 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                                     .align(Alignment.Center)
                                     .rotate(rotationDeg + 90f),
                                 )
+                            }
+                        } else if (isAnimatingReload) {
+                            if (curReloader == j) {
+                                val bulletX = x + 15
+                                val bulletY = y - 15 - bulletRelativePos.value/9
+
+                                Image(
+                                    painter = painterResource(id = R.drawable.reload),
+                                    contentDescription = "Description de l'image",
+                                    modifier = Modifier
+                                        .height(30.dp)
+                                        .offset(bulletX.dp, bulletY.dp)
+                                        .align(Alignment.Center),
+                                    )
                             }
                         }
                     }
