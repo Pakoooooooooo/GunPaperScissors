@@ -27,7 +27,9 @@ fun AppRoot(
     onSubmitAction: (String, String?) -> Unit,
     onExitRequested: () -> Unit,
     onLeaveGame: () -> Unit,
-    onFinishGame: () -> Unit
+    onFinishGame: () -> Unit,
+    // Called by GameScreen when it finished any pending animations (used to delay final ranking)
+    onAnimationsCompleted: () -> Unit
 ) {
     BackHandler(enabled = true) {
         when (uiState.screen) {
@@ -68,7 +70,13 @@ fun AppRoot(
                 )
             }
             is MainViewModel.Screen.Game -> {
-                GameScreen(players = uiState.currentPlayers, meId = uiState.playerId, choices = uiState.choices, onSubmit = onSubmitAction)
+                GameScreen(
+                    players = uiState.currentPlayers,
+                    meId = uiState.playerId,
+                    choices = uiState.choices,
+                    onSubmit = onSubmitAction,
+                    onAnimationsCompleted = onAnimationsCompleted
+                )
             }
             is MainViewModel.Screen.FinalRanking -> {
                 FinalRankingScreen(ranking = uiState.finalRanking, onFinish = onFinishGame)

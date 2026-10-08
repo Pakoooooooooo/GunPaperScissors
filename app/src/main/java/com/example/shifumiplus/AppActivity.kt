@@ -71,7 +71,8 @@ class AppActivity : ComponentActivity() {
                             prefs.edit { putInt(key, total) }
                         }
                         viewModel.finishGame()
-                }
+                },
+                    onAnimationsCompleted = { viewModel.notifyAnimationsCompleted() }
                 )
             }
         }

@@ -43,11 +43,20 @@ import kotlin.math.sin
 
 @SuppressLint("MutableCollectionMutableState")
 @Composable
-fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, Map<String, Any>>, onSubmit: (action: String, target: String?) -> Unit) {
+fun GameScreen(
+    players: List<PlayerState>,
+    meId: String?,
+    choices: Map<String, Map<String, Any>>,
+    onSubmit: (action: String, target: String?) -> Unit,
+    onAnimationsCompleted: () -> Unit = {}
+) {
     val alivePlayers = players.filter { it.lives > 0 }
     val myState = players.find { it.id == meId }
     val isEliminated = (myState?.lives ?: 1) <= 0
     val myChoice = choices[meId]
+
+    // remember last seen full-choices snapshot so startAnimation triggers only on new rounds
+    val lastResolvedChoices = remember { mutableStateOf<Map<String, Map<String, Any>>?>(null) }
     var targetMode by remember { mutableStateOf<String?>(null) }
     val selectedTargets = remember { mutableStateListOf<String>() }
     val bulletRadius = 10f
@@ -73,9 +82,17 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
         superShields: List<Int>
     ) {
         scope.launch {
+            // map player ids to absolute indices in alivePlayers
             isAnimating = true
             showShields = shields
             showSuperShields = superShields
+
+            bulletRelativePos.animateTo(
+                targetValue = 100f,
+                animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+            )
+            bulletRelativePos.snapTo(0f)
+
             reloads.forEach { loader ->
                 isAnimatingReload = true
                 curReloader = loader
@@ -86,7 +103,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                 isAnimatingReload = false
                 bulletRelativePos.snapTo(0f)
             }
-            stops.forEach{ pair ->
+            stops.forEach { pair ->
                 isAnimatingStops = true
                 curShotPair = pair
                 bulletRelativePos.animateTo(
@@ -98,6 +115,7 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                 bulletRelativePos.snapTo(0f)
             }
             shots.forEach { pair ->
+                // for bombs pair.first == pair.second
                 if (pair.first == pair.second) {
                     isAnimatingBomb = true
                     curBombThrower = pair.first
@@ -119,8 +137,69 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                 }
 
             }
-            isAnimating = false
             showStopedPlayers = emptyList()
+
+            bulletRelativePos.animateTo(
+                targetValue = 100f,
+                animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+            )
+            bulletRelativePos.snapTo(0f)
+
+            isAnimating = false
+            // notify host that animations ended for this resolved turn (used to delay final ranking)
+            try {
+                onAnimationsCompleted()
+            } catch (t: Throwable) {
+                // swallow: callback must not break UI
+                println("!!! onAnimationsCompleted callback threw: ${'$'}t")
+            }
+        }
+    }
+
+    // start animation automatically when server returns choices for every alive player
+    LaunchedEffect(choices, players) {
+        val aliveIds = alivePlayers.map { it.id }
+        val hasAll = aliveIds.isNotEmpty() && choices.keys.containsAll(aliveIds)
+        if (hasAll && lastResolvedChoices.value != choices) {
+            // build parameter lists from choices map
+            val reloadsIds = mutableListOf<String>()
+            val idToIndex = alivePlayers.mapIndexed { idx, p -> p.id to idx }.toMap()
+            val reloads = mutableListOf<Int>()
+            val stops = mutableListOf<Pair<Int, Int>>()
+            val shots = mutableListOf<Pair<Int, Int>>()
+            val shields = mutableListOf<Int>()
+            val superShields = mutableListOf<Int>()
+
+            choices.forEach { (pid, c) ->
+                val action = c["action"] as? String ?: return@forEach
+                val targetRaw = c["target"] as? String
+                val ai = idToIndex[pid]
+                when (action) {
+                    "Reload" -> ai?.let { reloads.add(it) }
+                    "Protect" -> ai?.let { shields.add(it) }
+                    "SuperProtect" -> ai?.let { superShields.add(it) }
+                    "Block" -> if (targetRaw != null) {
+                        val bi = idToIndex[targetRaw.trim()]
+                        if (ai != null && bi != null) stops.add(ai to bi)
+                    }
+                    "Shoot" -> if (targetRaw != null) {
+                        val bi = idToIndex[targetRaw.trim()]
+                        if (ai != null && bi != null) shots.add(ai to bi)
+                    }
+                    "DoubleShoot" -> if (targetRaw != null) {
+                        targetRaw.split(";").map { it.trim() }.forEach { tid ->
+                            val bi = idToIndex[tid]
+                            if (ai != null && bi != null) shots.add(ai to bi)
+                        }
+                    }
+                    "Bomb" -> ai?.let { shots.add(it to it) }
+                }
+            }
+
+            startAnimation(reloads, stops, shots, shields, superShields)
+
+            // remember this snapshot to avoid re-triggering
+            lastResolvedChoices.value = choices.toMap()
         }
     }
 
@@ -135,17 +214,6 @@ fun GameScreen(players: List<PlayerState>, meId: String?, choices: Map<String, M
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Button(onClick = {
-                startAnimation(
-                    listOf(0,1),
-                    listOf(1 to 0),
-                    listOf(0 to 1, 1 to 1),
-                    listOf(0),
-                    listOf(1)
-                )
-            }) {
-                Text("Déplacer")
-            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -524,6 +592,12 @@ fun GameScreenPreview() {
 
     // Force light theme + disable dynamic colors so preview background is white
     ShiFuMiPlusTheme(darkTheme = false, dynamicColor = false) {
-        GameScreen(players = players, meId = "p1", choices = choices) { _, _ -> }
+        GameScreen(
+            players = players,
+            meId = "p1",
+            choices = choices,
+            onSubmit = { _, _ -> },
+            onAnimationsCompleted = {}
+        )
     }
 }

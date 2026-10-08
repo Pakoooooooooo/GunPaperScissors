@@ -33,7 +33,10 @@ class MainViewModel : ViewModel() {
         val started: Boolean = false,
         val choices: Map<String, Map<String, Any>> = emptyMap(),
         val turn: Long = 0,
-        val finalRanking: List<String> = emptyList()
+        val finalRanking: List<String> = emptyList(),
+        // When true, final ranking should be shown but we must wait for the client's
+        // ongoing animations to finish before navigating to the FinalRanking screen.
+        val pendingFinalRanking: Boolean = false
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -88,21 +91,37 @@ class MainViewModel : ViewModel() {
             val rankingIds = computeFinalRanking(players)
             val ranking = rankingIds.map { id -> players.find { it.id == id }?.name ?: id }
             val gameEnded = started && isGameFinished(players)
-            val screen = when {
-                gameEnded -> Screen.FinalRanking(gameId, ranking)
-                started -> Screen.Game(gameId)
-                else -> Screen.Lobby(gameId)
-            }
 
-            _uiState.value = _uiState.value.copy(
-                screen = screen,
-                currentGameId = gameId,
-                currentPlayers = players,
-                started = started,
-                choices = choices,
-                turn = turn ?: 0,
-                finalRanking = ranking
-            )
+            if (gameEnded) {
+                // Do NOT navigate immediately to FinalRanking here. Keep showing the Game screen
+                // and mark that final ranking is pending. The GameScreen will notify the ViewModel
+                // when its animations have completed by calling notifyAnimationsCompleted().
+                _uiState.value = _uiState.value.copy(
+                    screen = Screen.Game(gameId),
+                    currentGameId = gameId,
+                    currentPlayers = players,
+                    started = started,
+                    choices = choices,
+                    turn = turn ?: 0,
+                    finalRanking = ranking,
+                    pendingFinalRanking = true
+                )
+            } else {
+                val screen = when {
+                    started -> Screen.Game(gameId)
+                    else -> Screen.Lobby(gameId)
+                }
+                _uiState.value = _uiState.value.copy(
+                    screen = screen,
+                    currentGameId = gameId,
+                    currentPlayers = players,
+                    started = started,
+                    choices = choices,
+                    turn = turn ?: 0,
+                    finalRanking = ranking,
+                    pendingFinalRanking = false
+                )
+            }
 
             // Only still-alive players must pick an action; eliminated players are ignored.
             if (!gameEnded && activePlayers.isNotEmpty() && activeChoices.size == activePlayers.size) {
@@ -188,6 +207,20 @@ class MainViewModel : ViewModel() {
             if (ok) {
                 println("Could not start game")
             }
+        }
+    }
+
+    /**
+     * Called by the UI when the client's animations for the final turn have completed.
+     * If a final ranking was pending, navigate now to the FinalRanking screen.
+     */
+    fun notifyAnimationsCompleted() {
+        val s = _uiState.value
+        if (s.pendingFinalRanking && s.currentGameId != null) {
+            _uiState.value = s.copy(
+                screen = Screen.FinalRanking(s.currentGameId, s.finalRanking),
+                pendingFinalRanking = false
+            )
         }
     }
 
