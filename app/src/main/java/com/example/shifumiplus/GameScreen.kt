@@ -50,8 +50,24 @@ fun GameScreen(
     onSubmit: (action: String, target: String?) -> Unit,
     onAnimationsCompleted: () -> Unit = {}
 ) {
-    val alivePlayers = players.filter { it.lives > 0 }
-    val myState = players.find { it.id == meId }
+    // displayedPlayers lags behind 'players' while animations run; apply updates only when animations are finished
+    val displayedPlayers = remember { mutableStateOf(players) }
+    val pendingPlayersSnapshot = remember { mutableStateOf<List<PlayerState>?>(null) }
+
+    // animation state must be declared before we reference it
+    var isAnimating by remember { mutableStateOf(false) }
+
+    // When upstream 'players' changes, either apply immediately (if not animating) or stash as pending
+    LaunchedEffect(players) {
+        if (isAnimating) {
+            pendingPlayersSnapshot.value = players
+        } else {
+            displayedPlayers.value = players
+        }
+    }
+
+    val alivePlayers = displayedPlayers.value.filter { it.lives > 0 }
+    val myState = displayedPlayers.value.find { it.id == meId }
     val isEliminated = (myState?.lives ?: 1) <= 0
     val myChoice = choices[meId]
 
@@ -61,7 +77,6 @@ fun GameScreen(
     val selectedTargets = remember { mutableStateListOf<String>() }
     val bulletRadius = 10f
     val bulletRelativePos = remember { Animatable(0f) }
-    var isAnimating by remember { mutableStateOf(false) }
     var isAnimatingBullet by remember { mutableStateOf(false) }
     var isAnimatingBomb by remember { mutableStateOf(false) }
     var isAnimatingStops by remember { mutableStateOf(false) }
@@ -146,10 +161,18 @@ fun GameScreen(
             bulletRelativePos.snapTo(0f)
 
             isAnimating = false
+
+            // Apply any pending player snapshot now that animation ended so the number/layout of players
+            // and related UI adjust after the visuals finished.
+            if (pendingPlayersSnapshot.value != null) {
+                displayedPlayers.value = pendingPlayersSnapshot.value!!
+                pendingPlayersSnapshot.value = null
+            }
+
             // notify host that animations ended for this resolved turn (used to delay final ranking)
             try {
                 onAnimationsCompleted()
-            } catch (t: Throwable) {
+            } catch (_: Throwable) {
                 // swallow: callback must not break UI
                 println("!!! onAnimationsCompleted callback threw: ${'$'}t")
             }
@@ -162,7 +185,7 @@ fun GameScreen(
         val hasAll = aliveIds.isNotEmpty() && choices.keys.containsAll(aliveIds)
         if (hasAll && lastResolvedChoices.value != choices) {
             // build parameter lists from choices map
-            val reloadsIds = mutableListOf<String>()
+            mutableListOf<String>()
             val idToIndex = alivePlayers.mapIndexed { idx, p -> p.id to idx }.toMap()
             val reloads = mutableListOf<Int>()
             val stops = mutableListOf<Pair<Int, Int>>()
@@ -186,11 +209,9 @@ fun GameScreen(
                         val bi = idToIndex[targetRaw.trim()]
                         if (ai != null && bi != null) shots.add(ai to bi)
                     }
-                    "DoubleShoot" -> if (targetRaw != null) {
-                        targetRaw.split(";").map { it.trim() }.forEach { tid ->
-                            val bi = idToIndex[tid]
-                            if (ai != null && bi != null) shots.add(ai to bi)
-                        }
+                    "DoubleShoot" -> targetRaw?.split(";")?.map { it.trim() }?.forEach { tid ->
+                        val bi = idToIndex[tid]
+                        if (ai != null && bi != null) shots.add(ai to bi)
                     }
                     "Bomb" -> ai?.let { shots.add(it to it) }
                 }

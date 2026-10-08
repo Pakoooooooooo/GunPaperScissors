@@ -49,10 +49,6 @@ class MainViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(playerName = name, playerId = id)
     }
 
-    fun setPlayerName(name: String) {
-        _uiState.value = _uiState.value.copy(playerName = name)
-    }
-
     fun navigateTo(screen: Screen) {
         // detach previous listener when moving away from a game/lobby
         if (screen !is Screen.Lobby && screen !is Screen.Game) {
@@ -100,7 +96,7 @@ class MainViewModel : ViewModel() {
                     screen = Screen.Game(gameId),
                     currentGameId = gameId,
                     currentPlayers = players,
-                    started = started,
+                    started = true,
                     choices = choices,
                     turn = turn ?: 0,
                     finalRanking = ranking,
@@ -137,7 +133,7 @@ class MainViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(screen = Screen.GameCreateLoading)
         scope.launch {
             val id = FirestoreRepository.createGame(myId, name)
-            if (!id.isNullOrBlank()) {
+            if (id.isNotBlank()) {
                 attachListener(id)
             } else {
                 // fallback to main menu on failure

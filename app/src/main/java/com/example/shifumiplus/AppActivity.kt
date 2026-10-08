@@ -35,7 +35,7 @@ class AppActivity : ComponentActivity() {
                 savedId = java.util.UUID.randomUUID().toString().replace("-", "").uppercase().take(8)
                 prefs.edit { putString("player_id", savedId) }
             }
-            viewModel.setPlayer(savedName, savedId!!)
+            viewModel.setPlayer(savedName, savedId)
             viewModel.navigateTo(MainViewModel.Screen.MainMenu)
         }
 
