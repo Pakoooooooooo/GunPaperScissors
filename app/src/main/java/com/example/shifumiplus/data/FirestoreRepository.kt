@@ -205,7 +205,7 @@ object FirestoreRepository {
         val snap = safeFirestoreCall { docRef.get().await() } ?: return false
         val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
         val players = playersRaw.mapNotNull { (it["id"] as? String) }
-        return if (snap.exists() && players.size >= 3) {
+        return if (snap.exists() && players.size >= 2) {
             val playersState = playersRaw.map { entry ->
                 mapOf(
                     "id" to (entry["id"] as? String ?: ""),
