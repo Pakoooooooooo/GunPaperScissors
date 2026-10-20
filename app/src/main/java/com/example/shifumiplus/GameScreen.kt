@@ -79,6 +79,7 @@ fun GameScreen(
     val bulletRelativePos = remember { Animatable(0f) }
     var isAnimatingBullet by remember { mutableStateOf(false) }
     var isAnimatingBomb by remember { mutableStateOf(false) }
+    var isAnimatingBlow by remember { mutableStateOf(false) }
     var isAnimatingStops by remember { mutableStateOf(false) }
     var isAnimatingReload by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -140,15 +141,49 @@ fun GameScreen(
                     )
                     isAnimatingBomb = false
                     bulletRelativePos.snapTo(0f)
-                } else {
-                    isAnimatingBullet = true
-                    curShotPair = pair
+                    isAnimatingBlow = true
+                    curBombThrower = pair.first
                     bulletRelativePos.animateTo(
                         targetValue = 100f,
-                        animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                        animationSpec = tween(durationMillis = 150, easing = LinearEasing)
                     )
-                    isAnimatingBullet = false
+                    isAnimatingBlow = false
                     bulletRelativePos.snapTo(0f)
+                }
+                else {
+                    if (pair.second in shields) {
+                        isAnimatingBullet = true
+                        curShotPair = pair
+                        bulletRelativePos.animateTo(
+                            targetValue = 70f,
+                            animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+                        )
+                        isAnimatingBullet = false
+                        bulletRelativePos.snapTo(0f)
+                    }
+                    else if (pair.second in superShields) {
+                        isAnimatingBullet = true
+                        curShotPair = pair
+                        bulletRelativePos.animateTo(
+                            targetValue = 70f,
+                            animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+                        )
+                        bulletRelativePos.animateTo(
+                            targetValue = 0f,
+                            animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+                        )
+                        isAnimatingBullet = false
+                    }
+                    else {
+                        isAnimatingBullet = true
+                        curShotPair = pair
+                        bulletRelativePos.animateTo(
+                            targetValue = 100f,
+                            animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                        )
+                        isAnimatingBullet = false
+                        bulletRelativePos.snapTo(0f)
+                    }
                 }
 
             }
@@ -338,10 +373,12 @@ fun GameScreen(
                                     }),
                                     contentDescription = "Description de l'image",
                                     modifier = Modifier
-                                        .height(when {
-                                            isAnimatingStops -> 30.dp
-                                            else -> 20.dp
-                                        })
+                                        .height(
+                                            when {
+                                                isAnimatingStops -> 30.dp
+                                                else -> 20.dp
+                                            }
+                                        )
                                         .offset(bulletX.dp, bulletY.dp)
                                         .align(Alignment.Center)
                                         .rotate(rotationDeg + 90f),
@@ -367,21 +404,30 @@ fun GameScreen(
                                     .offset(bulletX.dp, bulletY.dp)
                                     .align(Alignment.Center)
                                     .rotate(rotationDeg + 90f),
+                            )
+                        }
+                    } else if (isAnimatingBlow) {
+                        if (curBombThrower == j) {
+                            Image(
+                                painter = painterResource(id = R.drawable.blow),
+                                contentDescription = "Description de l'image",
+                                modifier = Modifier
+                                    .height((bulletRelativePos.value * 2).dp)
+                                    .align(Alignment.Center),
+                            )
+                        }
+                    } else if (isAnimatingReload) {
+                        if (curReloader == j) {
+                            val bulletX = x + 15
+                            val bulletY = y - 15 - bulletRelativePos.value/9
+                            Image(
+                                painter = painterResource(id = R.drawable.reload),
+                                contentDescription = "Description de l'image",
+                                modifier = Modifier
+                                    .height(30.dp)
+                                    .offset(bulletX.dp, bulletY.dp)
+                                    .align(Alignment.Center),
                                 )
-                            }
-                        } else if (isAnimatingReload) {
-                            if (curReloader == j) {
-                                val bulletX = x + 15
-                                val bulletY = y - 15 - bulletRelativePos.value/9
-
-                                Image(
-                                    painter = painterResource(id = R.drawable.reload),
-                                    contentDescription = "Description de l'image",
-                                    modifier = Modifier
-                                        .height(30.dp)
-                                        .offset(bulletX.dp, bulletY.dp)
-                                        .align(Alignment.Center),
-                                    )
                             }
                         }
                     }
