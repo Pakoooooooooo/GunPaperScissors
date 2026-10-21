@@ -329,6 +329,15 @@ fun GameScreen(
                         isMe = player.id == meId
                         )
 
+                    //Text(
+                    //    text = j.toString(),
+                    //    fontSize = 40.sp,
+                    //    color = Color.Black,
+                    //    modifier = Modifier
+                    //        .offset(x.dp, y.dp - 10.dp)
+                    //        .align(Alignment.Center)
+                    //)
+
                     if (isAnimating && j in showShields) Image(
                         painter = painterResource(id = R.drawable.topsideshield),
                         contentDescription = "Description de l'image",
@@ -337,7 +346,8 @@ fun GameScreen(
                             .offset(shieldX.dp, shieldY.dp)
                             .align(Alignment.Center)
                             .rotate((angle * 180 / Math.PI).toFloat() - 90f),
-                    ) else if (isAnimating && j in showSuperShields) Image(
+                    )
+                    else if (isAnimating && j in showSuperShields) Image(
                         painter = painterResource(id = R.drawable.topsidesupershield),
                         contentDescription = "Description de l'image",
                         modifier = Modifier
@@ -348,44 +358,50 @@ fun GameScreen(
                     )
                     if (isAnimatingBullet || isAnimatingStops) {
                         if (curShotPair.first == j) {
-                            val it = curShotPair.second
-                            if (it != j) {
-                                val angle2 = ((2 * Math.PI * it / count) + Math.PI / 2) % (2 * Math.PI)
-                                // compute actual positions of shooter (x,y) and target (tx,ty) on same basis
-                                val x2 = (radius * cos(angle2)).toFloat()
-                                val y2 = (radius * sin(angle2)).toFloat()
-                                // direction vector from shooter to target
-                                val dx = x2 - x
-                                val dy = y2 - y
-                                val dist = kotlin.math.sqrt(dx * dx + dy * dy) - bulletRadius
-                                // angle toward target (atan2 uses y then x)
-                                val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
-                                val bulletPos = bulletRadius + (bulletRelativePos.value / 100f) * dist
-                                val bulletX = x + (bulletPos * cos(bulletAngle)).toFloat()
-                                val bulletY = y + (bulletPos * sin(bulletAngle)).toFloat()
-                                // rotation in degrees: adjust if sprite needs orientation fix (+/- 90)
-                                val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
+                            val targetIndex = curShotPair.second
+                            if (targetIndex != j) {
+                                val shooterRelativeIndex = (j - meIndex + count) % count
+                                val targetRelativeIndex = (targetIndex - meIndex + count) % count
+                                val shooterAngle = ((2 * Math.PI * shooterRelativeIndex / count) + Math.PI / 2) % (2 * Math.PI)
+                                val targetAngle = ((2 * Math.PI * targetRelativeIndex / count) + Math.PI / 2) % (2 * Math.PI)
+                                val shooterX = (radius * cos(shooterAngle)).toFloat()
+                                val shooterY = (radius * sin(shooterAngle)).toFloat()
+                                val targetX = (radius * cos(targetAngle)).toFloat()
+                                val targetY = (radius * sin(targetAngle)).toFloat()
 
-                                Image(
-                                    painter = painterResource(id = when {
-                                        isAnimatingStops -> R.drawable.stop
-                                        else -> R.drawable.bullet
-                                    }),
-                                    contentDescription = "Description de l'image",
-                                    modifier = Modifier
-                                        .height(
-                                            when {
-                                                isAnimatingStops -> 30.dp
-                                                else -> 20.dp
-                                            }
-                                        )
-                                        .offset(bulletX.dp, bulletY.dp)
-                                        .align(Alignment.Center)
-                                        .rotate(rotationDeg + 90f),
+                                val dx = targetX - shooterX
+                                val dy = targetY - shooterY
+                                val targetDistance = kotlin.math.sqrt(dx * dx + dy * dy)
+                                if (targetDistance > 0f) {
+                                    val bulletAngle = kotlin.math.atan2(dy.toDouble(), dx.toDouble())
+                                    val progress = (bulletRelativePos.value / 100f).coerceIn(0f, 1f)
+                                    val bulletDistance = bulletRadius + progress * (targetDistance - bulletRadius)
+                                    val bulletX = shooterX + (bulletDistance * cos(bulletAngle)).toFloat()
+                                    val bulletY = shooterY + (bulletDistance * sin(bulletAngle)).toFloat()
+                                    val rotationDeg = (bulletAngle * 180 / Math.PI).toFloat()
+
+                                    Image(
+                                        painter = painterResource(id = when {
+                                            isAnimatingStops -> R.drawable.stop
+                                            else -> R.drawable.bullet
+                                        }),
+                                        contentDescription = "Description de l'image",
+                                        modifier = Modifier
+                                            .height(
+                                                when {
+                                                    isAnimatingStops -> 30.dp
+                                                    else -> 20.dp
+                                                }
+                                            )
+                                            .offset(bulletX.dp, bulletY.dp)
+                                            .align(Alignment.Center)
+                                            .rotate(rotationDeg + 90f),
                                     )
+                                }
                             }
                         }
-                    } else if (isAnimatingBomb) {
+                    }
+                    else if (isAnimatingBomb) {
                         if (curBombThrower == j) {
                             val dist = kotlin.math.sqrt(x * x + y * y) - bulletRadius
                             // angle toward target (atan2 uses y then x)
@@ -406,7 +422,8 @@ fun GameScreen(
                                     .rotate(rotationDeg + 90f),
                             )
                         }
-                    } else if (isAnimatingBlow) {
+                    }
+                    else if (isAnimatingBlow) {
                         if (curBombThrower == j) {
                             Image(
                                 painter = painterResource(id = R.drawable.blow),
@@ -416,7 +433,8 @@ fun GameScreen(
                                     .align(Alignment.Center),
                             )
                         }
-                    } else if (isAnimatingReload) {
+                    }
+                    else if (isAnimatingReload) {
                         if (curReloader == j) {
                             val bulletX = x + 15
                             val bulletY = y - 15 - bulletRelativePos.value/9
@@ -447,7 +465,8 @@ fun GameScreen(
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                             color = LiteGrey
                         )
-                    } else if (myChoice == null) {
+                    }
+                    else if (myChoice == null) {
                         Text(
                             "Que vas tu faire :",
                             fontWeight = FontWeight.Bold,
@@ -524,7 +543,8 @@ fun GameScreen(
                                 }, color = MaterialTheme.colorScheme.secondary
                             )
                         }
-                    } else {
+                    }
+                    else {
                         Text(
                             "En attente des autres joueurs...",
                             fontSize = 20.sp,
