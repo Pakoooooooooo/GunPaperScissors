@@ -1,5 +1,6 @@
 package com.example.shifumiplus
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.compose.ui.graphics.toArgb
 import com.example.shifumiplus.ui.theme.BackgroundColor
@@ -59,6 +60,12 @@ class AppActivity : ComponentActivity() {
                     onJoinRequest = { id -> viewModel.joinGame(id) },
                     onStartGame = { viewModel.startGame() },
                     onNavigateToJoin = { viewModel.navigateTo(MainViewModel.Screen.Join) },
+                    onNavigateToFriends = {
+                        val intent = Intent(this@AppActivity, FriendsActivity::class.java)
+                        intent.putExtra("player_id", prefs.getString("player_id", null))
+                        intent.putExtra("player_name", prefs.getString("player_name", null))
+                        startActivity(intent)
+                    },
                     onNavigateToMain = { viewModel.navigateTo(MainViewModel.Screen.MainMenu) },
                     onSubmitAction = { action, target -> viewModel.submitAction(action, target) },
                     onExitRequested = { finish() },

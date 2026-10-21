@@ -29,7 +29,7 @@ import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable
-fun MainMenuScreen(onNewGame: () -> Unit, onJoin: () -> Unit) {
+fun MainMenuScreen(onNewGame: () -> Unit, onJoin: () -> Unit, onFriends: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .background(BackgroundColor)
@@ -57,6 +57,8 @@ fun MainMenuScreen(onNewGame: () -> Unit, onJoin: () -> Unit) {
                 MenuButton("Nouvelle partie", onNewGame)
                 Spacer(modifier = Modifier.height(10.dp))
                 MenuButton("Rejoindre une partie", onJoin)
+                Spacer(modifier = Modifier.height(10.dp))
+                MenuButton("Amis", onFriends)
             }
             Spacer(modifier = Modifier.height(120.dp))
         }

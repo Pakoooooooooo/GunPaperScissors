@@ -23,6 +23,7 @@ fun AppRoot(
     onJoinRequest: (String) -> Unit,
     onStartGame: () -> Unit,
     onNavigateToJoin: () -> Unit,
+    onNavigateToFriends: () -> Unit,
     onNavigateToMain: () -> Unit,
     onSubmitAction: (String, String?) -> Unit,
     onExitRequested: () -> Unit,
@@ -50,7 +51,7 @@ fun AppRoot(
                 NameScreen(initial = uiState.playerName ?: "", onConfirm = onNameConfirm)
             }
             is MainViewModel.Screen.MainMenu -> {
-                MainMenuScreen(onNewGame = onCreateGame, onJoin = onNavigateToJoin)
+                MainMenuScreen(onNewGame = onCreateGame, onJoin = onNavigateToJoin, onFriends = onNavigateToFriends)
             }
             is MainViewModel.Screen.Join -> {
                 JoinScreen(onJoin = onJoinRequest)
