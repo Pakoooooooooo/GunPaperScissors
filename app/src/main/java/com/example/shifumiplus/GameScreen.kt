@@ -100,8 +100,8 @@ fun GameScreen(
         scope.launch {
             // map player ids to absolute indices in alivePlayers
             isAnimating = true
-            showShields = shields
-            showSuperShields = superShields
+            showShields = shields.filter{it !in stops.map { s -> s.second }}
+            showSuperShields = superShields.filter{it !in stops.map { s -> s.second }}
 
             bulletRelativePos.animateTo(
                 targetValue = 100f,
@@ -109,16 +109,6 @@ fun GameScreen(
             )
             bulletRelativePos.snapTo(0f)
 
-            reloads.forEach { loader ->
-                isAnimatingReload = true
-                curReloader = loader
-                bulletRelativePos.animateTo(
-                    targetValue = 100f,
-                    animationSpec = tween(durationMillis = 250, easing = LinearEasing)
-                )
-                isAnimatingReload = false
-                bulletRelativePos.snapTo(0f)
-            }
             stops.forEach { pair ->
                 isAnimatingStops = true
                 curShotPair = pair
@@ -128,66 +118,80 @@ fun GameScreen(
                 )
                 showStopedPlayers = showStopedPlayers + pair.second
                 isAnimatingStops = false
+                bulletRelativePos.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = 10, easing = LinearEasing)
+                )
                 bulletRelativePos.snapTo(0f)
             }
-            shots.forEach { pair ->
-                // for bombs pair.first == pair.second
-                if (pair.first == pair.second) {
-                    isAnimatingBomb = true
-                    curBombThrower = pair.first
+            reloads.forEach { loader ->
+                if (loader !in stops.map { it.second }) {
+                    isAnimatingReload = true
+                    curReloader = loader
                     bulletRelativePos.animateTo(
                         targetValue = 100f,
                         animationSpec = tween(durationMillis = 250, easing = LinearEasing)
                     )
-                    isAnimatingBomb = false
-                    bulletRelativePos.snapTo(0f)
-                    isAnimatingBlow = true
-                    curBombThrower = pair.first
-                    bulletRelativePos.animateTo(
-                        targetValue = 100f,
-                        animationSpec = tween(durationMillis = 150, easing = LinearEasing)
-                    )
-                    isAnimatingBlow = false
+                    isAnimatingReload = false
                     bulletRelativePos.snapTo(0f)
                 }
-                else {
-                    if (pair.second in shields) {
-                        isAnimatingBullet = true
-                        curShotPair = pair
-                        bulletRelativePos.animateTo(
-                            targetValue = 70f,
-                            animationSpec = tween(durationMillis = 200, easing = LinearEasing)
-                        )
-                        isAnimatingBullet = false
-                        bulletRelativePos.snapTo(0f)
-                    }
-                    else if (pair.second in superShields) {
-                        isAnimatingBullet = true
-                        curShotPair = pair
-                        bulletRelativePos.animateTo(
-                            targetValue = 70f,
-                            animationSpec = tween(durationMillis = 200, easing = LinearEasing)
-                        )
-                        bulletRelativePos.animateTo(
-                            targetValue = 0f,
-                            animationSpec = tween(durationMillis = 200, easing = LinearEasing)
-                        )
-                        isAnimatingBullet = false
-                    }
-                    else {
-                        isAnimatingBullet = true
-                        curShotPair = pair
+            }
+            shots.forEach { pair ->
+                // for bombs pair.first == pair.second
+                if (pair.first !in stops.map { it.second }) {
+                    if (pair.first == pair.second) {
+                        isAnimatingBomb = true
+                        curBombThrower = pair.first
                         bulletRelativePos.animateTo(
                             targetValue = 100f,
                             animationSpec = tween(durationMillis = 250, easing = LinearEasing)
                         )
-                        isAnimatingBullet = false
+                        isAnimatingBomb = false
                         bulletRelativePos.snapTo(0f)
+                        isAnimatingBlow = true
+                        curBombThrower = pair.first
+                        bulletRelativePos.animateTo(
+                            targetValue = 100f,
+                            animationSpec = tween(durationMillis = 150, easing = LinearEasing)
+                        )
+                        isAnimatingBlow = false
+                        bulletRelativePos.snapTo(0f)
+                    } else {
+                        if (pair.second in shields) {
+                            isAnimatingBullet = true
+                            curShotPair = pair
+                            bulletRelativePos.animateTo(
+                                targetValue = 70f,
+                                animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+                            )
+                            isAnimatingBullet = false
+                            bulletRelativePos.snapTo(0f)
+                        } else if (pair.second in superShields) {
+                            isAnimatingBullet = true
+                            curShotPair = pair
+                            bulletRelativePos.animateTo(
+                                targetValue = 70f,
+                                animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+                            )
+                            bulletRelativePos.animateTo(
+                                targetValue = 0f,
+                                animationSpec = tween(durationMillis = 200, easing = LinearEasing)
+                            )
+                            isAnimatingBullet = false
+                        } else {
+                            isAnimatingBullet = true
+                            curShotPair = pair
+                            bulletRelativePos.animateTo(
+                                targetValue = 100f,
+                                animationSpec = tween(durationMillis = 250, easing = LinearEasing)
+                            )
+                            isAnimatingBullet = false
+                            bulletRelativePos.snapTo(0f)
+                        }
                     }
                 }
 
             }
-            showStopedPlayers = emptyList()
 
             bulletRelativePos.animateTo(
                 targetValue = 100f,
@@ -195,6 +199,7 @@ fun GameScreen(
             )
             bulletRelativePos.snapTo(0f)
 
+            showStopedPlayers = emptyList()
             isAnimating = false
 
             // Apply any pending player snapshot now that animation ended so the number/layout of players
