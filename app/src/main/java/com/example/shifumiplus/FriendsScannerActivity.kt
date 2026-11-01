@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,24 +72,31 @@ class FriendsScannerActivity : ComponentActivity() {
         setContent {
             ShiFuMiPlusTheme {
                 FriendsScannerScreen(
-                scannedProfile = scannedProfile,
-                onPreviewReady = { previewView ->
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                        startCamera(previewView)
-                    }
-                },
-                onAccept = {
-                    val profile = scannedProfile ?: return@FriendsScannerScreen
-                    val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
-                    val meId = prefs.getString("player_id", null) ?: return@FriendsScannerScreen
-                    val meName = prefs.getString("player_name", null) ?: return@FriendsScannerScreen
-                    lifecycleScope.launch {
-                        FriendsStore.addMutualFriend(this@FriendsScannerActivity, FriendProfile(meId, meName), profile)
-                        finish()
-                    }
-                },
-                onCancel = { finish() }
-            )
+                    scannedProfile = scannedProfile,
+                    onPreviewReady = { previewView ->
+                        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                            startCamera(previewView)
+                        }
+                    },
+                    onManualLookup = { rawId ->
+                        val candidate = rawId.trim()
+                        val parts = candidate.split("|", limit = 2)
+                        if (parts.size == 2 && parts[0].length == 8 && parts[0].all { it.isLetterOrDigit() } && parts[1].isNotBlank()) {
+                            scannedProfile = FriendProfile(parts[0], parts[1])
+                        }
+                    },
+                    onAccept = {
+                        val profile = scannedProfile ?: return@FriendsScannerScreen
+                        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+                        val meId = prefs.getString("player_id", null) ?: return@FriendsScannerScreen
+                        val meName = prefs.getString("player_name", null) ?: return@FriendsScannerScreen
+                        lifecycleScope.launch {
+                            FriendsStore.addMutualFriend(this@FriendsScannerActivity, FriendProfile(meId, meName), profile)
+                            finish()
+                        }
+                    },
+                    onCancel = { finish() }
+                )
             }
         }
 
@@ -167,9 +175,17 @@ class FriendsScannerActivity : ComponentActivity() {
 fun FriendsScannerScreen(
     scannedProfile: FriendProfile?,
     onPreviewReady: (PreviewView) -> Unit,
+    onManualLookup: (String) -> Unit,
     onAccept: () -> Unit,
     onCancel: () -> Unit
 ) {
+    var manualId by remember { mutableStateOf("") }
+    val isManualIdValid = run {
+        val raw = manualId.trim()
+        val parts = raw.split("|", limit = 2)
+        parts.size == 2 && parts[0].length == 8 && parts[0].all { it.isLetterOrDigit() } && parts[1].isNotBlank()
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -187,17 +203,50 @@ fun FriendsScannerScreen(
                 .padding(32.dp)
         )
 
-        Box(
+        Column(
             modifier = Modifier
-                .align(Alignment.Center)
-                .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
-                .padding(20.dp)
+                .align(Alignment.TopCenter)
+                .padding(top = 24.dp, start = 24.dp, end = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Scannez un QR code",
-                color = Color.White,
-                style = MaterialTheme.typography.titleMedium
+            Box(
+                modifier = Modifier
+                    .background(Color.White.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "Scannez un QR code",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = manualId,
+                onValueChange = { manualId = it },
+                singleLine = true,
+                placeholder = { Text("IDIDIDID|namenamenamename") },
+                modifier = Modifier.fillMaxSize(0.8f)
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    if (isManualIdValid) {
+                        onManualLookup(manualId)
+                    }
+                },
+                enabled = isManualIdValid,
+                colors = ButtonDefaults.buttonColors(containerColor = DarkGrey)
+            ) {
+                Text(
+                    text = "OK",
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
         }
 
         if (scannedProfile != null) {
@@ -266,6 +315,7 @@ fun FriendsScannerScreenPreview() {
                 "IDIDIDID",
                 "Name"
             ),
+            {},
             {},
             {},
             {}
