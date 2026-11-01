@@ -26,7 +26,7 @@ import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 
 @Composable
-fun FinalRankingScreen(ranking: List<String>, onFinish: () -> Unit) {
+fun FinalRankingScreen(ranking: List<String>, onReplay: () -> Unit, onFinish: () -> Unit) {
     Surface(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -49,12 +49,11 @@ fun FinalRankingScreen(ranking: List<String>, onFinish: () -> Unit) {
                     color = MaterialTheme.colorScheme.secondary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                ranking.forEachIndexed { index, name ->
+                ranking.forEach { label ->
                     Text(
                         buildAnnotatedString {
-                            append("${index + 1}. ")
                             withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(name)
+                                append(label)
                             }
                         },
                         color = MaterialTheme.colorScheme.secondary,
@@ -62,7 +61,11 @@ fun FinalRankingScreen(ranking: List<String>, onFinish: () -> Unit) {
                     )
                 }
                 Spacer(modifier = Modifier.height(24.dp))
-                MenuButton("Terminer", onFinish)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    MenuButton("Rejouer", onReplay)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    MenuButton("Terminer", onFinish)
+                }
             }
         }
     }
@@ -72,6 +75,6 @@ fun FinalRankingScreen(ranking: List<String>, onFinish: () -> Unit) {
 @Composable
 fun FinalRankingScreenPreview() {
     ShiFuMiPlusTheme {
-        FinalRankingScreen(ranking = listOf("Alice", "Bob", "Charlie")) {}
+        FinalRankingScreen(ranking = listOf("Alice", "Bob", "Charlie"), onReplay = {}, onFinish = {})
     }
 }

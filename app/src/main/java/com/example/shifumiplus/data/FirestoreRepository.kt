@@ -194,6 +194,41 @@ object FirestoreRepository {
         safeFirestoreCall { docRef.update(payload).await() }
     }
 
+    suspend fun resetGame(idRaw: String): Boolean {
+        val id = normalizeId(idRaw)
+        val docRef = games.document(id)
+        val snap = safeFirestoreCall { docRef.get().await() } ?: return false
+        if (!snap.exists()) return false
+
+        val playersRaw = (snap.get("players") as? List<*>)?.mapNotNull { it as? Map<*, *> } ?: emptyList()
+        if (playersRaw.isEmpty()) return false
+
+        val playersState = playersRaw.map { entry ->
+            mapOf(
+                "id" to (entry["id"] as? String ?: ""),
+                "name" to (entry["name"] as? String ?: ""),
+                "lives" to 3,
+                "bullets" to 2,
+                "protectedLastTurn" to false,
+                "usedDoubleShoot" to false,
+                "usedSuperProtection" to false,
+                "usedBomb" to false,
+                "usedBlock" to false,
+                "eliminatedAtTurn" to null
+            )
+        }
+
+        val payload = mapOf(
+            "playersState" to playersState,
+            "started" to false,
+            "choices" to mapOf<String, Any>(),
+            "turn" to 0,
+            "initialPlayers" to playersRaw.mapNotNull { it["id"] as? String }
+        )
+
+        return safeFirestoreCall { docRef.update(payload).await(); true } ?: false
+    }
+
     suspend fun deleteGame(idRaw: String) {
         val id = normalizeId(idRaw)
         safeFirestoreCall { games.document(id).delete().await() }

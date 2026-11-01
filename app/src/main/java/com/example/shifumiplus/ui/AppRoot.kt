@@ -29,6 +29,7 @@ fun AppRoot(
     onExitRequested: () -> Unit,
     onLeaveGame: () -> Unit,
     onFinishGame: () -> Unit,
+    onReplayGame: () -> Unit,
     // Called by GameScreen when it finished any pending animations (used to delay final ranking)
     onAnimationsCompleted: () -> Unit
 ) {
@@ -80,7 +81,11 @@ fun AppRoot(
                 )
             }
             is MainViewModel.Screen.FinalRanking -> {
-                FinalRankingScreen(ranking = uiState.finalRanking, onFinish = onFinishGame)
+                FinalRankingScreen(
+                    ranking = uiState.finalRanking,
+                    onReplay = onReplayGame,
+                    onFinish = onFinishGame
+                )
             }
         }
     }

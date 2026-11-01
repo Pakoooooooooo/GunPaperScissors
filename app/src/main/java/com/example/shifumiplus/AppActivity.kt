@@ -78,7 +78,8 @@ class AppActivity : ComponentActivity() {
                             prefs.edit { putInt(key, total) }
                         }
                         viewModel.finishGame()
-                },
+                    },
+                    onReplayGame = { viewModel.replayGame() },
                     onAnimationsCompleted = { viewModel.notifyAnimationsCompleted() }
                 )
             }

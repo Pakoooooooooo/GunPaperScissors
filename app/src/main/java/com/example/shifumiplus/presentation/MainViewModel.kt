@@ -74,7 +74,7 @@ class MainViewModel : ViewModel() {
                     bullets = (m["bullets"] as? Long)?.toInt() ?: (m["bullets"] as? Int) ?: 2,
                     protectedLastTurn = (m["protectedLastTurn"] as? Boolean) ?: false,
                     usedDoubleShoot = (m["usedDoubleShoot"] as? Boolean) ?: false,
-                    usedSuperProtection = (m["usedDoubleShoot"] as? Boolean) ?: false,
+                    usedSuperProtection = (m["usedSuperProtection"] as? Boolean) ?: false,
                     usedBomb = (m["usedBomb"] as? Boolean) ?: false,
                     usedBlock = (m["usedBlock"] as? Boolean) ?: false,
                     eliminatedAtTurn = (m["eliminatedAtTurn"] as? Long)
@@ -196,6 +196,26 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun replayGame() {
+        val id = _uiState.value.currentGameId ?: return
+        scope.launch {
+            val ok = FirestoreRepository.resetGame(id)
+            if (ok) {
+                listener?.remove()
+                listener = null
+                _uiState.value = _uiState.value.copy(
+                    screen = Screen.Lobby(id),
+                    started = false,
+                    choices = emptyMap(),
+                    turn = 0,
+                    finalRanking = emptyList(),
+                    pendingFinalRanking = false
+                )
+                attachListener(id)
+            }
+        }
+    }
+
     fun startGame() {
         val id = _uiState.value.currentGameId ?: return
         scope.launch {
@@ -237,11 +257,29 @@ class MainViewModel : ViewModel() {
     }
 
     private fun computeFinalRanking(players: List<PlayerState>): List<String> {
-            val survivors = players.filter { it.lives > 0 }.map { it.id }
-        val eliminated = players.filter { it.lives <= 0 }
-                .sortedWith(compareByDescending<PlayerState> { it.eliminatedAtTurn ?: 0L }.thenBy { it.id })
-                .map { it.id }
-        return survivors + eliminated
+        val ordered = players
+            .filter { it.lives > 0 }
+            .sortedBy { it.name }
+            .let { survivors ->
+                val eliminated = players
+                    .filter { it.lives <= 0 }
+                    .sortedWith(compareByDescending<PlayerState> { it.eliminatedAtTurn ?: 0L }.thenBy { it.id })
+                survivors + eliminated
+            }
+
+        val display = mutableListOf<String>()
+        var currentRank = 1
+        ordered.forEachIndexed { index, player ->
+            val sameRankAsPrevious = index > 0 &&
+                player.lives <= 0 &&
+                ordered[index - 1].lives <= 0 &&
+                (player.eliminatedAtTurn ?: Long.MAX_VALUE) == (ordered[index - 1].eliminatedAtTurn ?: Long.MAX_VALUE)
+            if (!sameRankAsPrevious) {
+                currentRank = index + 1
+            }
+            display.add("${currentRank}. ${player.name}")
+        }
+        return display
     }
 
     private fun tryResolveTurn(gameId: String, players: List<PlayerState>, choices: Map<String, Map<String, Any>>) {
@@ -281,13 +319,17 @@ class MainViewModel : ViewModel() {
                     val cur = stateById[targetId]
                     if (cur != null) {
                         when (targetAction) {
-                            "DoubleShoot" -> stateById[targetId] = cur.copy(usedDoubleShoot = true)
-                            "SuperProtect" -> stateById[targetId] = cur.copy(usedSuperProtection = true)
-                            "Bomb" -> stateById[targetId] = cur.copy(usedBomb = true)
-                            "Protect" -> stateById[targetId] = cur.copy(protectedLastTurn = true)
-                            "Shoot" -> {
-                                // shooter keeps bullet per spec; nothing to change
-                            }
+                           "DoubleShoot" -> stateById[targetId] = cur.copy(usedDoubleShoot = true)
+                           "SuperProtect" -> stateById[targetId] = cur.copy(usedSuperProtection = true)
+                           "Bomb" -> stateById[targetId] = cur.copy(usedBomb = true)
+                           "Protect" -> stateById[targetId] = cur.copy(protectedLastTurn = true)
+                           "Reload" -> {
+                               // blocked reload gives no bullet and should not consume any action usage
+                           }
+                           "Shoot" -> {
+                               // shooter keeps bullet per spec; nothing to change
+                           }
+                           "Block" -> stateById[targetId] = cur.copy(usedBlock = true)
                         }
                     }
                 }
@@ -325,13 +367,10 @@ class MainViewModel : ViewModel() {
                         }
                     }
                     "DoubleShoot" -> {
-                        // condition required at least 2 bullets; consume 1 bullet per spec
                         val tRaw = targetsRaw[playerId] ?: ""
                         val parts = tRaw.split(";").map { it.trim() }.filter { it.isNotEmpty() }
-                        // expect two targets; if fewer, ignore
-                        if (cur.bullets >= 2 && !stateById[playerId]!!.usedDoubleShoot) {
-                            // consume 1 bullet as per spec
-                            stateById[playerId] = cur.copy(bullets = cur.bullets - 1, usedDoubleShoot = true)
+                        if (cur.bullets >= 2 && !cur.usedDoubleShoot) {
+                            stateById[playerId] = cur.copy(bullets = cur.bullets - 2, usedDoubleShoot = true)
                             val t1 = parts.getOrNull(0)
                             val t2 = parts.getOrNull(1)
                             if (!t1.isNullOrBlank()) hits.add(playerId to t1)
@@ -352,9 +391,9 @@ class MainViewModel : ViewModel() {
             for (protectedPlayerId in superProtected) {
                 val shooters = hitsByTarget[protectedPlayerId] ?: emptyList()
                 shooters.groupingBy { it.first }.eachCount().forEach { (shooterId, count) ->
-                    // shooter loses 'count' lives and regains 'count' bullets
+                    // the shooter loses one life per reflected shot, but the bullets were already consumed by the action itself.
                     stateById[shooterId]?.let { s ->
-                        stateById[shooterId] = s.copy(lives = s.lives - count, bullets = s.bullets + count)
+                        stateById[shooterId] = s.copy(lives = s.lives - count)
                     }
                 }
                 // shots toward protectedPlayer do not harm them (handled below by checking superProtected)
