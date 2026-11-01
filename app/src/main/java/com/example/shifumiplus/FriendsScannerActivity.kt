@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,7 +37,6 @@ import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,6 +48,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.example.shifumiplus.ui.PlayerPP
 import com.example.shifumiplus.ui.theme.DarkGrey
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
@@ -80,8 +81,11 @@ class FriendsScannerActivity : ComponentActivity() {
                     val profile = scannedProfile ?: return@FriendsScannerScreen
                     val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
                     val meId = prefs.getString("player_id", null) ?: return@FriendsScannerScreen
-                    FriendsStore.addFriend(this, meId, profile)
-                    finish()
+                    val meName = prefs.getString("player_name", null) ?: return@FriendsScannerScreen
+                    lifecycleScope.launch {
+                        FriendsStore.addMutualFriend(this@FriendsScannerActivity, FriendProfile(meId, meName), profile)
+                        finish()
+                    }
                 },
                 onCancel = { finish() }
             )
@@ -238,12 +242,12 @@ fun FriendsScannerScreen(
                             )
                         }
                         Button(
-                            onClick = onAccept,
+                            onClick = onCancel,
                             colors = ButtonDefaults.buttonColors(containerColor = DarkGrey),
                         ) {
                             Text(
                                 text = "Annuler",
-                                color =  MaterialTheme.colorScheme.secondary
+                                color = MaterialTheme.colorScheme.secondary
                             )
                         }
                     }

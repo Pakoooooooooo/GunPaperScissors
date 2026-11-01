@@ -54,6 +54,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
 import com.example.shifumiplus.ui.PlayerPP
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.Bronson
@@ -97,21 +100,33 @@ fun FriendsScreen(
     val background = BackgroundColor.toArgb()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var friends by remember(playerId) { mutableStateOf(FriendsStore.getFriends(context, playerId)) }
+    var friends by remember(playerId) { mutableStateOf(emptyList<FriendProfile>()) }
     val qrBitmap = remember(playerId, playerName) { generateQrBitmap(
         FriendsStore.encodeCurrentUser(playerId, playerName),
         foreground,
 background
     ) }
 
+    LaunchedEffect(playerId) {
+friends = FriendsStore.fetchFriends(context, playerId)
+    }
+
     DisposableEffect(lifecycleOwner, playerId) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                friends = FriendsStore.getFriends(context, playerId)
-            }
+val listener = FriendsStore.listenToFriends(context, playerId) { updated ->
+    friends = updated
+}
+val observer = LifecycleEventObserver { _, event ->
+    if (event == Lifecycle.Event.ON_RESUME) {
+        lifecycleOwner.lifecycleScope.launch {
+            friends = FriendsStore.fetchFriends(context, playerId)
         }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+lifecycleOwner.lifecycle.addObserver(observer)
+onDispose {
+    listener.remove()
+    lifecycleOwner.lifecycle.removeObserver(observer)
+}
     }
 
     Box(
