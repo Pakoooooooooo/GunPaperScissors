@@ -205,7 +205,7 @@ fun FriendsScannerScreen(
 
         Column(
             modifier = Modifier
-                .align(Alignment.TopCenter)
+                .align(Alignment.Center)
                 .padding(top = 24.dp, start = 24.dp, end = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -223,29 +223,35 @@ fun FriendsScannerScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = manualId,
-                onValueChange = { manualId = it },
-                singleLine = true,
-                placeholder = { Text("IDIDIDID|namenamenamename") },
-                modifier = Modifier.fillMaxSize(0.8f)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    if (isManualIdValid) {
-                        onManualLookup(manualId)
-                    }
-                },
-                enabled = isManualIdValid,
-                colors = ButtonDefaults.buttonColors(containerColor = DarkGrey)
-            ) {
-                Text(
-                    text = "OK",
-                    color = MaterialTheme.colorScheme.secondary
+            Row(
+                modifier = Modifier.padding(20.dp)
+            ){
+                OutlinedTextField(
+                    value = manualId,
+                    onValueChange = { manualId = it },
+                    singleLine = true,
+                    placeholder = { Text("IDIDIDID|name") },
+                    modifier = Modifier
+                        .weight(1f),
                 )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = {
+                        if (isManualIdValid) {
+                            onManualLookup(manualId)
+                        }
+                    },
+                    enabled = isManualIdValid,
+                    colors = ButtonDefaults.buttonColors(containerColor = DarkGrey),
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Text(
+                        text = "OK",
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
             }
         }
 
