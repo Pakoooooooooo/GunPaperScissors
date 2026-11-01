@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ShiFuMiPlus.Splash" parent="Theme.ShiFuMiPlus">
+        <item name="android:windowBackground">@color/logo_red</item>
+        <item name="android:windowSplashScreenBackground">@color/logo_red</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+    </style>
+</resources>
