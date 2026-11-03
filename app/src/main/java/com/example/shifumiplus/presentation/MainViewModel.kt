@@ -142,7 +142,16 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun joinGame(idRaw: String) {
+    fun openCreatedGame(gameId: String) {
+        if (gameId.isBlank()) return
+        _uiState.value = _uiState.value.copy(
+            screen = Screen.GameCreateLoading,
+            currentGameId = gameId
+        )
+        attachListener(gameId)
+    }
+
+    fun joinGame(idRaw: String, onResult: ((Boolean) -> Unit)? = null) {
         val id = idRaw.trim()
         val name = _uiState.value.playerName ?: return
         val myId = _uiState.value.playerId ?: return
@@ -156,6 +165,7 @@ class MainViewModel : ViewModel() {
                 // return to Join screen on failure
                 _uiState.value = _uiState.value.copy(screen = Screen.Join)
             }
+            onResult?.invoke(success)
         }
     }
 

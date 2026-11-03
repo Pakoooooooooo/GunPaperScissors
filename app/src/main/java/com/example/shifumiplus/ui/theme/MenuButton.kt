@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -35,4 +36,55 @@ fun MenuButton(text: String, onPress: () -> Unit, enabled: Boolean = true) {
             fontFamily = Bronson
         )
     }
+}
+
+@Composable
+fun InvitationButton(text: String, onPress: () -> Unit) {
+    Button(
+        onClick = onPress,
+        shape = RoundedCornerShape(15.dp),
+        border = BorderStroke(3.dp, DarkGrey),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .height(50.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = ActionGreen),
+        enabled = true
+    ) {
+        Text(
+            text,
+            color = DarkGrey,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Preview
+@Composable
+fun MenuButtonEnabledPreview(){
+    MenuButton(
+        text = "Menu Button",
+        {},
+        true
+    )
+}
+
+@Preview
+@Composable
+fun MenuButtonDisabledPreview(){
+    MenuButton(
+        text = "Menu Button",
+        {},
+        false
+    )
+}
+
+@Preview
+@Composable
+fun InvitationButtonPreview(){
+    InvitationButton(
+        text = "Menu Button",
+        {}
+    )
 }

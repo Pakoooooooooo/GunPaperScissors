@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -65,7 +67,9 @@ import com.example.shifumiplus.ui.PlayerPP
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import com.example.shifumiplus.ui.theme.Bronson
 import com.example.shifumiplus.ui.theme.DarkGrey
+import com.example.shifumiplus.ui.theme.MenuButton
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
+import com.example.shifumiplus.data.FirestoreRepository
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
@@ -108,6 +112,7 @@ fun FriendsScreen(
     var friends by remember(playerId) { mutableStateOf(emptyList<FriendProfile>()) }
     var editMode by remember(playerId) { mutableStateOf(false) }
     var selectedFriendIds by remember(playerId) { mutableStateOf(setOf<String>()) }
+    var isCreatingGame by remember { mutableStateOf(false) }
     val qrBitmap = remember(playerId, playerName) { generateQrBitmap(
 FriendsStore.encodeCurrentUser(playerId, playerName),
 foreground,
@@ -140,6 +145,7 @@ onDispose {
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundColor)
+            .navigationBarsPadding()
             .padding(16.dp)
     ) {
         Column(
@@ -307,7 +313,54 @@ onDispose {
                             }
                         }
                     }
+
                 }
+            }
+
+            if (editMode) {
+                MenuButton(
+                    text = "Nouvelle Partie",
+                    enabled = !isCreatingGame,
+                    onPress = {
+                        if (isCreatingGame) return@MenuButton
+                        isCreatingGame = true
+                        val invitedIds = selectedFriendIds.toList()
+                        scope.launch {
+                            try {
+                                val gameId = FirestoreRepository.createGame(playerId, playerName)
+                                if (gameId.isBlank()) {
+                                    Toast.makeText(context, "Could not create the game.", Toast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
+
+                                try {
+                                    FriendsStore.createGameInvites(
+                                        senderId = playerId,
+                                        senderName = playerName,
+                                        invitedIds = invitedIds,
+                                        gameId = gameId
+                                    )
+                                } catch (_: Exception) {
+                                    Toast.makeText(
+                                        context,
+                                        "Could not send all game invitations.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+
+                                val intent = Intent(context, AppActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                    putExtra(AppActivity.EXTRA_OPEN_GAME_ID, gameId)
+                                }
+                                context.startActivity(intent)
+                            } catch (_: Exception) {
+                                Toast.makeText(context, "Could not create the game.", Toast.LENGTH_SHORT).show()
+                            } finally {
+                                isCreatingGame = false
+                            }
+                        }
+                    }
+                )
             }
         }
     }

@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonDefaults
@@ -223,35 +224,38 @@ fun FriendsScannerScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.padding(20.dp)
-            ){
-                OutlinedTextField(
-                    value = manualId,
-                    onValueChange = { manualId = it },
-                    singleLine = true,
-                    placeholder = { Text("IDIDIDID|name") },
-                    modifier = Modifier
-                        .weight(1f),
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(20.dp)
+        ) {
+            OutlinedTextField(
+                value = manualId,
+                onValueChange = { manualId = it },
+                singleLine = true,
+                placeholder = { Text("IDIDIDID|name") },
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Button(
+                onClick = {
+                    if (isManualIdValid) {
+                        onManualLookup(manualId)
+                    }
+                },
+                enabled = isManualIdValid,
+                colors = ButtonDefaults.buttonColors(containerColor = DarkGrey),
+                modifier = Modifier.align(Alignment.CenterVertically)
+            ) {
+                Text(
+                    text = "OK",
+                    color = MaterialTheme.colorScheme.secondary
                 )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Button(
-                    onClick = {
-                        if (isManualIdValid) {
-                            onManualLookup(manualId)
-                        }
-                    },
-                    enabled = isManualIdValid,
-                    colors = ButtonDefaults.buttonColors(containerColor = DarkGrey),
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                ) {
-                    Text(
-                        text = "OK",
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
             }
         }
 

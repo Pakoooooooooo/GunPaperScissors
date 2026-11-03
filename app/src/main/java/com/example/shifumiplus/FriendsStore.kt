@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -27,10 +28,18 @@ data class FriendProfile(
     }
 }
 
+data class GameInvite(
+    val id: String,
+    val gameId: String,
+    val senderName: String,
+    val createdAt: Long
+)
+
 object FriendsStore {
     private const val PREF_NAME = "friends_prefs"
     private val db = Firebase.firestore
     private const val FRIENDS_COLLECTION = "user_friends"
+    private const val INVITES_COLLECTION = "game_invites"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -190,5 +199,92 @@ object FriendsStore {
         } catch (_: Exception) {
             // Fallback local-only if Firestore is temporarily unavailable.
         }
+    }
+
+    suspend fun createGameInvites(
+        senderId: String,
+        senderName: String,
+        invitedIds: List<String>,
+        gameId: String
+    ) {
+        val recipientIds = invitedIds
+            .filter { it.isNotBlank() && it != senderId }
+            .distinct()
+        if (recipientIds.isEmpty()) return
+
+        val batch = db.batch()
+        recipientIds.forEach { recipientId ->
+            val inviteRef = db.collection(INVITES_COLLECTION)
+                .document(recipientId)
+                .collection("inbox")
+                .document()
+            batch.set(
+                inviteRef,
+                mapOf(
+                    "senderId" to senderId,
+                    "senderName" to senderName,
+                    "gameId" to gameId,
+                    "createdAt" to System.currentTimeMillis()
+                )
+            )
+        }
+        batch.commit().await()
+    }
+
+    fun listenToGameInvites(
+        playerId: String,
+        onUpdate: (List<GameInvite>) -> Unit,
+        onError: (Exception) -> Unit
+    ): ListenerRegistration {
+        return db.collection(INVITES_COLLECTION)
+            .document(playerId)
+            .collection("inbox")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+                if (snapshot == null) return@addSnapshotListener
+
+                val invites = snapshot.documents.mapNotNull { document ->
+                    val gameId = document.getString("gameId") ?: return@mapNotNull null
+                    val senderName = document.getString("senderName") ?: return@mapNotNull null
+                    GameInvite(
+                        id = document.id,
+                        gameId = gameId,
+                        senderName = senderName,
+                        createdAt = document.getLong("createdAt") ?: 0L
+                    )
+                }.sortedByDescending { it.createdAt }
+                onUpdate(invites)
+            }
+    }
+
+    suspend fun fetchGameInvites(playerId: String): List<GameInvite> {
+        val snapshot = db.collection(INVITES_COLLECTION)
+            .document(playerId)
+            .collection("inbox")
+            .get(Source.SERVER)
+            .await()
+
+        return snapshot.documents.mapNotNull { document ->
+            val gameId = document.getString("gameId") ?: return@mapNotNull null
+            val senderName = document.getString("senderName") ?: return@mapNotNull null
+            GameInvite(
+                id = document.id,
+                gameId = gameId,
+                senderName = senderName,
+                createdAt = document.getLong("createdAt") ?: 0L
+            )
+        }.sortedByDescending { it.createdAt }
+    }
+
+    suspend fun deleteGameInvite(playerId: String, inviteId: String) {
+        db.collection(INVITES_COLLECTION)
+            .document(playerId)
+            .collection("inbox")
+            .document(inviteId)
+            .delete()
+            .await()
     }
 }

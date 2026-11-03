@@ -21,6 +21,7 @@ fun AppRoot(
     onNameConfirm: (String) -> Unit,
     onCreateGame: () -> Unit,
     onJoinRequest: (String) -> Unit,
+    onJoinInviteRequest: (gameId: String, inviteId: String) -> Unit,
     onStartGame: () -> Unit,
     onNavigateToJoin: () -> Unit,
     onNavigateToFriends: () -> Unit,
@@ -46,7 +47,17 @@ fun AppRoot(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().navigationBarsPadding()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(
+                if (uiState.screen is MainViewModel.Screen.Game) {
+                    Modifier
+                } else {
+                    Modifier.navigationBarsPadding()
+                }
+            )
+    ) {
         when (uiState.screen) {
             is MainViewModel.Screen.Name -> {
                 NameScreen(initial = uiState.playerName ?: "", onConfirm = onNameConfirm)
@@ -55,7 +66,11 @@ fun AppRoot(
                 MainMenuScreen(onNewGame = onCreateGame, onJoin = onNavigateToJoin, onFriends = onNavigateToFriends)
             }
             is MainViewModel.Screen.Join -> {
-                JoinScreen(onJoin = onJoinRequest)
+                JoinScreen(
+                    playerId = uiState.playerId.orEmpty(),
+                    onJoin = onJoinRequest,
+                    onJoinInvite = onJoinInviteRequest
+                )
             }
             is MainViewModel.Screen.GameCreateLoading -> {
                 LoadingScreen(text = "Creating game...")
@@ -75,6 +90,7 @@ fun AppRoot(
                 GameScreen(
                     players = uiState.currentPlayers,
                     meId = uiState.playerId,
+                    gameId = uiState.currentGameId.orEmpty(),
                     choices = uiState.choices,
                     onSubmit = onSubmitAction,
                     onAnimationsCompleted = onAnimationsCompleted

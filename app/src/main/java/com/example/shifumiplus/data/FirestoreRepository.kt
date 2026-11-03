@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
@@ -40,6 +41,21 @@ object FirestoreRepository {
 
     private suspend fun resolveGameRef(idRaw: String): DocumentReference? {
         return resolveGameSnapshot(idRaw)?.reference
+    }
+
+    suspend fun gameExists(idRaw: String): Boolean? {
+        val id = normalizeId(idRaw)
+        if (id.isBlank()) return false
+
+        val direct = safeFirestoreCall {
+            games.document(id).get(Source.SERVER).await()
+        } ?: return null
+        if (direct.exists()) return true
+
+        val fallback = safeFirestoreCall {
+            games.whereEqualTo("code", id).limit(1).get(Source.SERVER).await()
+        } ?: return null
+        return fallback.documents.isNotEmpty()
     }
 
     suspend fun createGame(hostId: String, hostName: String): String {

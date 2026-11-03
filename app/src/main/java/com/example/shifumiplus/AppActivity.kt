@@ -2,6 +2,7 @@ package com.example.shifumiplus
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.compose.ui.graphics.toArgb
 import com.example.shifumiplus.ui.theme.BackgroundColor
 import androidx.activity.ComponentActivity
@@ -10,14 +11,26 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.SideEffect
+import com.example.shifumiplus.data.FirestoreRepository
 import com.example.shifumiplus.presentation.MainViewModel
 import com.example.shifumiplus.ui.AppRoot
 import com.example.shifumiplus.ui.theme.ShiFuMiPlusTheme
 import androidx.core.content.edit
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 @Suppress("DEPRECATION")
 class AppActivity : ComponentActivity() {
+    companion object {
+        const val EXTRA_OPEN_GAME_ID = "open_game_id"
+    }
+
     private val viewModel: MainViewModel by viewModels()
+    private var isGameScreenVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,10 +52,15 @@ class AppActivity : ComponentActivity() {
             viewModel.setPlayer(savedName, savedId)
             viewModel.navigateTo(MainViewModel.Screen.MainMenu)
         }
+        openGameFromIntent(intent)
 
         setContent {
             ShiFuMiPlusTheme {
                 val state by viewModel.uiState.collectAsState()
+                SideEffect {
+                    isGameScreenVisible = state.screen is MainViewModel.Screen.Game
+                    setGameNavigationBarHidden(isGameScreenVisible)
+                }
                 val playerWins = state.currentPlayers.associate { player ->
                     player.id to prefs.getInt(playerWinKey(player.id), 0)
                 }
@@ -58,6 +76,39 @@ class AppActivity : ComponentActivity() {
                     },
                     onCreateGame = { viewModel.createGame() },
                     onJoinRequest = { id -> viewModel.joinGame(id) },
+                    onJoinInviteRequest = { gameId, inviteId ->
+                        val playerId = prefs.getString("player_id", null).orEmpty()
+                        viewModel.joinGame(gameId) { joined ->
+                            if (!joined) {
+                                lifecycleScope.launch {
+                                    try {
+                                        when (FirestoreRepository.gameExists(gameId)) {
+                                            false -> {
+                                                FriendsStore.deleteGameInvite(playerId, inviteId)
+                                                Toast.makeText(
+                                                    this@AppActivity,
+                                                    "Cette partie n'existe plus. Invitation supprimée.",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                            null -> Toast.makeText(
+                                                this@AppActivity,
+                                                "Impossible de vérifier cette invitation.",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            true -> Unit
+                                        }
+                                    } catch (_: Exception) {
+                                        Toast.makeText(
+                                            this@AppActivity,
+                                            "Impossible de vérifier cette invitation.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            }
+                        }
+                    },
                     onStartGame = { viewModel.startGame() },
                     onNavigateToJoin = { viewModel.navigateTo(MainViewModel.Screen.Join) },
                     onNavigateToFriends = {
@@ -83,6 +134,37 @@ class AppActivity : ComponentActivity() {
                     onAnimationsCompleted = { viewModel.notifyAnimationsCompleted() }
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openGameFromIntent(intent)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            setGameNavigationBarHidden(isGameScreenVisible)
+        }
+    }
+
+    private fun setGameNavigationBarHidden(hidden: Boolean) {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (hidden) {
+            controller.hide(WindowInsetsCompat.Type.navigationBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.navigationBars())
+        }
+    }
+
+    private fun openGameFromIntent(intent: Intent?) {
+        val gameId = intent?.getStringExtra(EXTRA_OPEN_GAME_ID)
+        if (!gameId.isNullOrBlank()) {
+            viewModel.openCreatedGame(gameId)
         }
     }
 

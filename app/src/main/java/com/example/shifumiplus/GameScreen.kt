@@ -46,6 +46,7 @@ import kotlin.math.sin
 fun GameScreen(
     players: List<PlayerState>,
     meId: String?,
+    gameId: String = "",
     choices: Map<String, Map<String, Any>>,
     onSubmit: (action: String, target: String?) -> Unit,
     onAnimationsCompleted: () -> Unit = {}
@@ -279,7 +280,8 @@ fun GameScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-            ) {
+            )
+            {
                 val count = alivePlayers.size.coerceAtLeast(1)
                 val meIndex =
                     alivePlayers.indexOfFirst { it.id == meId }.let { if (it == -1) 0 else it }
@@ -538,7 +540,8 @@ fun GameScreen(
                                     }
                                 }
                             }
-                        } else {
+                        }
+                        else {
                             Text(
                                 when (targetMode) {
                                     "Shoot" -> "Clique sur le joueur cible."
@@ -594,7 +597,8 @@ fun GameScreen(
                                         Row (
                                             horizontalArrangement = Arrangement.Start,
                                             verticalAlignment = Alignment.CenterVertically
-                                        ) {
+                                        )
+                                        {
                                             PlayerPP(Modifier.fillMaxHeight())
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
@@ -646,16 +650,22 @@ fun GameScreen(
                                                     )
                                                 )
                                             )
-                                            Spacer(modifier = Modifier.width(5.dp))
                                         }
                                     }
-                                    Spacer(modifier = Modifier.height(5.dp))
                                 }
                             }
                         }
                     }
                 }
             }
+
+            Text(
+                text = "  Id : $gameId",
+                fontSize = 14.sp,
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.secondary,
+                textAlign = TextAlign.Start
+            )
         }
     }
 }
