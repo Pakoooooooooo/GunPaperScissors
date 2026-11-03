@@ -60,6 +60,19 @@ object FriendsStore {
         }
     }
 
+    fun removeFriend(context: Context, playerId: String, friendId: String) {
+        val updated = getFriends(context, playerId)
+            .filter { it.id != friendId }
+            .sortedBy { it.name.lowercase() }
+
+        prefs(context).edit {
+            putStringSet(
+                "friends_$playerId",
+                updated.map { it.encode() }.toSet()
+            )
+        }
+    }
+
     private fun parseFriends(raw: Any?): List<FriendProfile> =
         (raw as? List<*>)
             ?.mapNotNull { item ->
@@ -76,10 +89,11 @@ object FriendsStore {
         val localFriends = getFriends(context, playerId)
         return try {
             val snapshot = db.collection(FRIENDS_COLLECTION).document(playerId).get().await()
-            val remoteFriends = parseFriends(snapshot.get("friends"))
-            (remoteFriends + localFriends)
-                .distinctBy { it.id }
-                .sortedBy { it.name.lowercase() }
+            if (snapshot.exists() && snapshot.contains("friends")) {
+                parseFriends(snapshot.get("friends"))
+            } else {
+                localFriends
+            }
         } catch (_: Exception) {
             localFriends
         }
@@ -92,26 +106,41 @@ object FriendsStore {
     ): ListenerRegistration {
         return db.collection(FRIENDS_COLLECTION).document(playerId)
             .addSnapshotListener { snapshot, _ ->
-                val merged = try {
-                    val remoteFriends = parseFriends(snapshot?.get("friends"))
-                    val localFriends = getFriends(context, playerId)
-                    (remoteFriends + localFriends).distinctBy { it.id }.sortedBy { it.name.lowercase() }
+                val result = try {
+                    if (snapshot != null && snapshot.exists() && snapshot.contains("friends")) {
+                        parseFriends(snapshot.get("friends"))
+                    } else {
+                        getFriends(context, playerId)
+                    }
                 } catch (_: Exception) {
                     getFriends(context, playerId)
                 }
-                onUpdate(merged)
+                onUpdate(result)
             }
+    }
+
+    private suspend fun fetchRemoteFriends(playerId: String): List<FriendProfile> {
+        return try {
+            val snapshot = db.collection(FRIENDS_COLLECTION).document(playerId).get().await()
+            parseFriends(snapshot.get("friends"))
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     suspend fun addMutualFriend(context: Context, currentUser: FriendProfile, friend: FriendProfile) {
         if (currentUser.id == friend.id) return
 
-        val meExisting = fetchFriends(context, currentUser.id)
+        val meExisting = (fetchRemoteFriends(currentUser.id) + getFriends(context, currentUser.id))
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
         val myUpdatedList = (meExisting.filter { it.id != friend.id } + friend)
             .distinctBy { it.id }
             .sortedBy { it.name.lowercase() }
 
-        val friendExisting = fetchFriends(context, friend.id)
+        val friendExisting = (fetchRemoteFriends(friend.id) + getFriends(context, friend.id))
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
         val friendUpdatedList = (friendExisting.filter { it.id != currentUser.id } + currentUser)
             .distinctBy { it.id }
             .sortedBy { it.name.lowercase() }
@@ -125,6 +154,38 @@ object FriendsStore {
                 .await()
             db.collection(FRIENDS_COLLECTION).document(friend.id)
                 .set(mapOf("friends" to friendUpdatedList.map { mapOf("id" to it.id, "name" to it.name) }), SetOptions.merge())
+                .await()
+        } catch (_: Exception) {
+            // Fallback local-only if Firestore is temporarily unavailable.
+        }
+    }
+
+    suspend fun removeMutualFriend(context: Context, currentUserId: String, otherUserId: String) {
+        if (currentUserId == otherUserId) return
+
+        val meExisting = (fetchRemoteFriends(currentUserId) + getFriends(context, currentUserId))
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
+        val myUpdatedList = meExisting.filter { it.id != otherUserId }
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
+
+        val otherExisting = (fetchRemoteFriends(otherUserId) + getFriends(context, otherUserId))
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
+        val otherUpdatedList = otherExisting.filter { it.id != currentUserId }
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
+
+        removeFriend(context, currentUserId, otherUserId)
+        removeFriend(context, otherUserId, currentUserId)
+
+        try {
+            db.collection(FRIENDS_COLLECTION).document(currentUserId)
+                .set(mapOf("friends" to myUpdatedList.map { mapOf("id" to it.id, "name" to it.name) }), SetOptions.merge())
+                .await()
+            db.collection(FRIENDS_COLLECTION).document(otherUserId)
+                .set(mapOf("friends" to otherUpdatedList.map { mapOf("id" to it.id, "name" to it.name) }), SetOptions.merge())
                 .await()
         } catch (_: Exception) {
             // Fallback local-only if Firestore is temporarily unavailable.

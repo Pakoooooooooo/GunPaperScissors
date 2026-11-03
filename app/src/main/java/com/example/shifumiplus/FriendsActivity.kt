@@ -13,6 +13,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.example.shifumiplus.ui.PlayerPP
 import com.example.shifumiplus.ui.theme.BackgroundColor
@@ -102,10 +104,13 @@ fun FriendsScreen(
     val background = BackgroundColor.toArgb()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     var friends by remember(playerId) { mutableStateOf(emptyList<FriendProfile>()) }
+    var editMode by remember(playerId) { mutableStateOf(false) }
+    var selectedFriendIds by remember(playerId) { mutableStateOf(setOf<String>()) }
     val qrBitmap = remember(playerId, playerName) { generateQrBitmap(
-        FriendsStore.encodeCurrentUser(playerId, playerName),
-        foreground,
+FriendsStore.encodeCurrentUser(playerId, playerName),
+foreground,
 background
     ) }
 
@@ -183,6 +188,41 @@ onDispose {
             Box(
                 modifier = Modifier.fillMaxWidth()
             ) {
+                if (editMode) {
+                    Row(
+                        modifier = Modifier.align(Alignment.CenterStart),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val idsToRemove = selectedFriendIds.toList()
+                                if (idsToRemove.isNotEmpty()) {
+                                    scope.launch {
+                                        idsToRemove.forEach { friendId ->
+                                            FriendsStore.removeMutualFriend(context, playerId, friendId)
+                                        }
+                                        friends = FriendsStore.fetchFriends(context, playerId)
+                                        selectedFriendIds = emptySet()
+                                        editMode = false
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("-")
+                        }
+                        Button(
+                            onClick = {
+                                editMode = false
+                                selectedFriendIds = emptySet()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text("V")
+                        }
+                    }
+                }
                 Text(
                     text = "Amis",
                     fontSize = 28.sp,
@@ -191,15 +231,17 @@ onDispose {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.Center)
                 )
-                IconButton(
-                    onClick = onOpenScanner,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.plus),
-                        contentDescription = "Ajouter un ami",
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (!editMode) {
+                    IconButton(
+                        onClick = onOpenScanner,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.plus),
+                            contentDescription = "Ajouter un ami",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
@@ -221,12 +263,29 @@ onDispose {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     friends.forEach { friend ->
+                        val isSelected = friend.id in selectedFriendIds
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(60.dp)
                                 .clip(RoundedCornerShape(15.dp))
                                 .background(DarkGrey)
+                                .border(
+                                    width = if (editMode && isSelected) 2.dp else 0.dp,
+                                    color = if (editMode && isSelected) MaterialTheme.colorScheme.secondary else Color.Transparent,
+                                    shape = RoundedCornerShape(15.dp)
+                                )
+                                .combinedClickable(
+                                    onLongClick = {
+                                        editMode = true
+                                        selectedFriendIds = if (friend.id in selectedFriendIds) selectedFriendIds - friend.id else selectedFriendIds + friend.id
+                                    },
+                                    onClick = {
+                                        if (editMode) {
+                                            selectedFriendIds = if (friend.id in selectedFriendIds) selectedFriendIds - friend.id else selectedFriendIds + friend.id
+                                        }
+                                    }
+                                )
                                 .padding(8.dp)
                         ) {
                             Row (
