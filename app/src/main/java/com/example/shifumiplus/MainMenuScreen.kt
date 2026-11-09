@@ -54,9 +54,9 @@ fun MainMenuScreen(onNewGame: () -> Unit, onJoin: () -> Unit, onFriends: () -> U
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                MenuButton("Nouvelle partie", onNewGame)
+                MenuButton("Nouvelle Partie", onNewGame)
                 Spacer(modifier = Modifier.height(10.dp))
-                MenuButton("Rejoindre une partie", onJoin)
+                MenuButton("Rejoindre", onJoin)
                 Spacer(modifier = Modifier.height(10.dp))
                 MenuButton("Amis", onFriends)
             }
