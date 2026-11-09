@@ -1,6 +1,7 @@
 package com.example.shifumiplus.presentation
 
 import androidx.lifecycle.ViewModel
+import com.example.shifumiplus.FriendsStore
 import com.example.shifumiplus.data.FirestoreRepository
 import com.example.shifumiplus.domain.PlayerState
 import com.google.firebase.firestore.ListenerRegistration
@@ -188,10 +189,12 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun finishGame() {
-        val id = _uiState.value.currentGameId ?: return
+    fun finishGame(onResult: (Boolean) -> Unit = {}) {
+        val state = _uiState.value
+        val gameId = state.currentGameId ?: return
+        val playerId = state.playerId ?: return
         scope.launch {
-            FirestoreRepository.deleteGame(id)
+            val markedFinished = FirestoreRepository.markReplayFinished(gameId, playerId)
             listener?.remove()
             listener = null
             _uiState.value = _uiState.value.copy(
@@ -203,14 +206,29 @@ class MainViewModel : ViewModel() {
                 turn = 0,
                 finalRanking = emptyList()
             )
+            onResult(markedFinished)
         }
     }
 
-    fun replayGame() {
-        val id = _uiState.value.currentGameId ?: return
+    fun replayGame(onResult: (replayed: Boolean, invitesSent: Boolean) -> Unit = { _, _ -> }) {
+        val state = _uiState.value
+        val id = state.currentGameId ?: return
+        val senderId = state.playerId ?: return
+        val senderName = state.playerName ?: return
+        val fallbackPlayers = state.currentPlayers.mapNotNull { player ->
+            if (player.id.isBlank() || player.name.isBlank()) {
+                null
+            } else {
+                mapOf("id" to player.id, "name" to player.name)
+            }
+        }
         scope.launch {
-            val ok = FirestoreRepository.resetGame(id)
-            if (ok) {
+            val invitedIds = FirestoreRepository.resetGameForReplay(
+                idRaw = id,
+                replayingPlayerId = senderId,
+                fallbackPlayers = fallbackPlayers
+            )
+            if (invitedIds != null) {
                 listener?.remove()
                 listener = null
                 _uiState.value = _uiState.value.copy(
@@ -222,6 +240,21 @@ class MainViewModel : ViewModel() {
                     pendingFinalRanking = false
                 )
                 attachListener(id)
+
+                val invitesSent = try {
+                    FriendsStore.createGameInvites(
+                        senderId = senderId,
+                        senderName = senderName,
+                        invitedIds = invitedIds,
+                        gameId = id
+                    )
+                    true
+                } catch (_: Exception) {
+                    false
+                }
+                onResult(true, invitesSent)
+            } else {
+                onResult(false, false)
             }
         }
     }

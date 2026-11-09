@@ -128,9 +128,28 @@ class AppActivity : ComponentActivity() {
                             val total = prefs.getInt(key, 0) + 1
                             prefs.edit { putInt(key, total) }
                         }
-                        viewModel.finishGame()
+                        viewModel.finishGame { markedFinished ->
+                            if (!markedFinished) {
+                                Toast.makeText(
+                                    this@AppActivity,
+                                    "Impossible d'enregistrer que vous avez terminé.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
                     },
-                    onReplayGame = { viewModel.replayGame() },
+                    onReplayGame = {
+                        viewModel.replayGame { replayed, invitesSent ->
+                            val message = when {
+                                !replayed -> "Impossible de relancer la partie."
+                                !invitesSent -> "Partie relancée, mais les invitations n'ont pas pu être envoyées."
+                                else -> null
+                            }
+                            message?.let {
+                                Toast.makeText(this@AppActivity, it, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    },
                     onAnimationsCompleted = { viewModel.notifyAnimationsCompleted() }
                 )
             }

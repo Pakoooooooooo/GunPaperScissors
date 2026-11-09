@@ -52,6 +52,7 @@ fun JoinScreen(
     val context = LocalContext.current
     var id by remember { mutableStateOf("") }
     var invites by remember(playerId) { mutableStateOf(emptyList<GameInvite>()) }
+    var expiredInviteIds by remember(playerId) { mutableStateOf(emptySet<String>()) }
     var isCheckingInvites by remember(playerId) { mutableStateOf(playerId.isNotBlank()) }
     var listenForInvites by remember(playerId) { mutableStateOf(playerId.isBlank()) }
 
@@ -60,13 +61,15 @@ fun JoinScreen(
             try {
                 val currentInvites = FriendsStore.fetchGameInvites(playerId)
                 val validInvites = mutableListOf<GameInvite>()
+                val expiredIds = mutableSetOf<String>()
                 currentInvites.forEach { invite ->
-                    when (FirestoreRepository.gameExists(invite.gameId)) {
-                        false -> {
+                    when (FirestoreRepository.removeFinishedGameIfNeeded(invite.gameId)) {
+                        FirestoreRepository.InviteGameStatus.MISSING,
+                        FirestoreRepository.InviteGameStatus.FINISHED -> {
+                            expiredIds += invite.id
                             try {
                                 FriendsStore.deleteGameInvite(playerId, invite.id)
                             } catch (_: Exception) {
-                                validInvites += invite
                                 Toast.makeText(
                                     context,
                                     "Could not remove an expired invitation.",
@@ -74,9 +77,11 @@ fun JoinScreen(
                                 ).show()
                             }
                         }
-                        true, null -> validInvites += invite
+                        FirestoreRepository.InviteGameStatus.AVAILABLE,
+                        FirestoreRepository.InviteGameStatus.UNKNOWN -> validInvites += invite
                     }
                 }
+                expiredInviteIds = expiredIds
                 invites = validInvites
             } catch (_: Exception) {
                 Toast.makeText(context, "Could not check invitations.", Toast.LENGTH_SHORT).show()
@@ -93,7 +98,9 @@ fun JoinScreen(
         } else {
             FriendsStore.listenToGameInvites(
                 playerId = playerId,
-                onUpdate = { updated -> invites = updated },
+                onUpdate = { updated ->
+                    invites = updated.filterNot { it.id in expiredInviteIds }
+                },
                 onError = {
                     Toast.makeText(context, "Could not load invitations.", Toast.LENGTH_SHORT).show()
                 }
