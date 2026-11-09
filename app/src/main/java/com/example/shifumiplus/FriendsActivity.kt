@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -102,16 +101,25 @@ fun FriendsScreen(
     playerId: String,
     playerName: String,
     onOpenScanner: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    previewFriends: List<FriendProfile>? = null,
+    previewEditMode: Boolean = false,
+    previewSelectedFriendIds: Set<String> = emptySet()
 ) {
     val foreground = MaterialTheme.colorScheme.secondary.toArgb()
     val background = BackgroundColor.toArgb()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    var friends by remember(playerId) { mutableStateOf(emptyList<FriendProfile>()) }
-    var editMode by remember(playerId) { mutableStateOf(false) }
-    var selectedFriendIds by remember(playerId) { mutableStateOf(setOf<String>()) }
+    var friends by remember(playerId, previewFriends) {
+        mutableStateOf(previewFriends ?: emptyList())
+    }
+    var editMode by remember(playerId, previewEditMode) {
+        mutableStateOf(previewEditMode)
+    }
+    var selectedFriendIds by remember(playerId, previewSelectedFriendIds) {
+        mutableStateOf(previewSelectedFriendIds)
+    }
     var isCreatingGame by remember { mutableStateOf(false) }
     val qrBitmap = remember(playerId, playerName) { generateQrBitmap(
 FriendsStore.encodeCurrentUser(playerId, playerName),
@@ -119,11 +127,16 @@ foreground,
 background
     ) }
 
-    LaunchedEffect(playerId) {
-friends = FriendsStore.fetchFriends(context, playerId)
+    LaunchedEffect(playerId, previewFriends) {
+        if (previewFriends == null) {
+            friends = FriendsStore.fetchFriends(context, playerId)
+        }
     }
 
-    DisposableEffect(lifecycleOwner, playerId) {
+    DisposableEffect(lifecycleOwner, playerId, previewFriends) {
+        if (previewFriends != null) {
+            onDispose { }
+        } else {
 val listener = FriendsStore.listenToFriends(context, playerId) { updated ->
     friends = updated
 }
@@ -139,6 +152,7 @@ onDispose {
     listener.remove()
     lifecycleOwner.lifecycle.removeObserver(observer)
 }
+        }
     }
 
     Box(
@@ -174,14 +188,14 @@ onDispose {
             }
             Spacer(modifier = Modifier.height(6.dp))
             Button(
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText("friend_code", FriendsStore.encodeCurrentUser(playerId, playerName))
                     clipboard.setPrimaryClip(clip)
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent
-                ),
                 elevation = null
             ) {
                 Image(
@@ -195,38 +209,40 @@ onDispose {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 if (editMode) {
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                val idsToRemove = selectedFriendIds.toList()
-                                if (idsToRemove.isNotEmpty()) {
-                                    scope.launch {
-                                        idsToRemove.forEach { friendId ->
-                                            FriendsStore.removeMutualFriend(context, playerId, friendId)
-                                        }
-                                        friends = FriendsStore.fetchFriends(context, playerId)
-                                        selectedFriendIds = emptySet()
-                                        editMode = false
+                    IconButton(
+                        onClick = {
+                            val idsToRemove = selectedFriendIds.toList()
+                            if (idsToRemove.isNotEmpty()) {
+                                scope.launch {
+                                    idsToRemove.forEach { friendId ->
+                                        FriendsStore.removeMutualFriend(context, playerId, friendId)
                                     }
+                                    friends = FriendsStore.fetchFriends(context, playerId)
+                                    selectedFriendIds = emptySet()
+                                    editMode = false
                                 }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Text("-")
-                        }
-                        Button(
-                            onClick = {
-                                editMode = false
-                                selectedFriendIds = emptySet()
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text("V")
-                        }
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.bin),
+                            contentDescription = "Delete",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            editMode = false
+                            selectedFriendIds = emptySet()
+                        },
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.check),
+                            contentDescription = "Valider",
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
                 Text(
@@ -394,15 +410,39 @@ private fun generateQrBitmap(
     }
 }
 
-@Preview
+@Preview(name = "Friends - normal")
 @Composable
-fun FriendsScreenPreview(){
+fun FriendsScreenPreview() {
     ShiFuMiPlusTheme {
         FriendsScreen(
-            "IDIDIDID",
-            "Name",
-            {  },
-            {  }
+            playerId = "IDIDIDID",
+            playerName = "Name",
+            onOpenScanner = {},
+            onBack = {},
+            previewFriends = listOf(
+                FriendProfile("A1B2C3D4", "Alice"),
+                FriendProfile("E5F6G7H8", "Bob")
+            )
+        )
+    }
+}
+
+@Preview(name = "Friends - edit mode")
+@Composable
+fun FriendsEditModePreview() {
+    val previewFriends = listOf(
+        FriendProfile("A1B2C3D4", "Alice"),
+        FriendProfile("E5F6G7H8", "Bob")
+    )
+    ShiFuMiPlusTheme {
+        FriendsScreen(
+            playerId = "IDIDIDID",
+            playerName = "Name",
+            onOpenScanner = {},
+            onBack = {},
+            previewFriends = previewFriends,
+            previewEditMode = true,
+            previewSelectedFriendIds = setOf(previewFriends.first().id)
         )
     }
 }

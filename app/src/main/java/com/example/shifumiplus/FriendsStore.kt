@@ -37,7 +37,7 @@ data class GameInvite(
 
 object FriendsStore {
     private const val PREF_NAME = "friends_prefs"
-    private val db = Firebase.firestore
+    private val db by lazy { Firebase.firestore }
     private const val FRIENDS_COLLECTION = "user_friends"
     private const val INVITES_COLLECTION = "game_invites"
 
