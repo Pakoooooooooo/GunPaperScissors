@@ -149,18 +149,26 @@ fun JoinScreen(
                 { if (id.isNotBlank()) onJoin(id.trim()) },
                 id.length == 6
             )
-            if (invites.isNotEmpty()) {
+            Text(
+                text = "Invitations",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                textAlign = TextAlign.Start,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = Bronson,
+                color = MaterialTheme.colorScheme.secondary
+            )
+            if (invites.isEmpty()) {
                 Text(
-                    text = "Invitations",
+                    text = "Pas d'invitation pour l'instant",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp),
-                    textAlign = TextAlign.Start,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = Bronson,
+                        .padding(top = 4.dp),
                     color = MaterialTheme.colorScheme.secondary
                 )
+            } else {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
